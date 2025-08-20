@@ -1,8 +1,31 @@
 {% extends "base.html" %}
 
+{% block head %}
+{{ super() }}
+<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+<style>
+    #notifications {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        width: 300px;
+        z-index: 1000;
+    }
+    .toast {
+        background-color: #333;
+        color: #fff;
+        padding: 15px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        opacity: 0.9;
+    }
+</style>
+{% endblock %}
+
 {% block title %}Dashboard - CryptoTracker{% endblock %}
 
 {% block content %}
+<div id="notifications"></div>
 <!-- Header do Dashboard (fora do container) -->
 <div class="dashboard-header">
     <h1>CryptoTracker Dashboard</h1>
@@ -11,6 +34,18 @@
     </p>
 </div>
 
+<!-- Filtro Dinâmico -->
+<div class="settings-container" style="margin-bottom:20px;">
+    <label for="currencySelect">Moeda:</label>
+    <select id="currencySelect">
+        <option value="usd">USD</option>
+        <option value="brl">BRL</option>
+        <option value="eur">EUR</option>
+    </select>
+    <label for="limitSelect">Quantidade:</label>
+    <input type="number" id="limitSelect" value="20" min="5" max="100" step="5" style="width:80px;" />
+    <button id="applySettingsBtn">Aplicar</button>
+</div>
 <!-- Filtro Dinâmico -->
 <div class="filter-container">
     <label for="cryptoFilter">Filtrar por Criptomoeda:</label>
@@ -56,189 +91,150 @@
 
 {% block scripts %}
 <script>
-    // Variáveis para armazenar as instâncias dos gráficos
-    let marketCapChartInstance = null;
-    let priceChartInstance = null;
-    let priceChangeChartInstance = null;
-    let volumeMarketCapChartInstance = null;
+    document.addEventListener('DOMContentLoaded', (event) => {
+        // --- Lógica do Socket.IO para notificações ---
+        const socket = io();
 
-    // Função para destruir gráficos antigos
-    function destroyCharts() {
-        if (marketCapChartInstance) {
-            marketCapChartInstance.destroy();
-        }
-        if (priceChartInstance) {
-            priceChartInstance.destroy();
-        }
-        if (priceChangeChartInstance) {
-            priceChangeChartInstance.destroy();
-        }
-        if (volumeMarketCapChartInstance) {
-            volumeMarketCapChartInstance.destroy();
-        }
-    }
-
-    // Função para carregar os dados das criptomoedas
-    async function loadCryptoData() {
-        try {
-            const response = await fetch('/get-top-cryptos'); // Endpoint para buscar dados
-            const data = await response.json();
-            renderCharts(data);
-        } catch (error) {
-            console.error('Erro ao carregar dados:', error);
-        } finally {
-            // Ocultar o spinner após carregar os dados
-            document.getElementById('loading-spinner').style.display = 'none';
-        }
-    }
-
-    // Função para aplicar o filtro
-    function applyFilter(cryptos) {
-        const selectedCrypto = document.getElementById('cryptoFilter').value;
-        const filteredData = selectedCrypto === 'all' ? cryptos : cryptos.filter(crypto => crypto.name === selectedCrypto);
-        renderCharts(filteredData);
-    }
-
-    // Função para calcular a média móvel
-    function calculateMovingAverage(data, windowSize) {
-        return data.map((val, idx, arr) => {
-            const start = Math.max(0, idx - windowSize + 1);
-            const end = idx + 1;
-            const subset = arr.slice(start, end);
-            const sum = subset.reduce((a, b) => a + b, 0);
-            return sum / subset.length;
+        socket.on('connect', () => {
+            console.log('Conectado ao servidor Socket.IO!');
         });
-    }
 
-    // Função para renderizar os gráficos
-    function renderCharts(cryptos) {
-        destroyCharts(); // Destruir gráficos antigos antes de criar novos
+        socket.on('analysis_update', function(data) {
+            console.log('Nova análise de mercado recebida:', data);
+            const recommendations = data.recommendations;
+            const notificationsDiv = document.getElementById('notifications');
 
-        const labels = cryptos.map(crypto => crypto.name);
-        const marketCaps = cryptos.map(crypto => crypto.market_cap);
-        const prices = cryptos.map(crypto => crypto.current_price);
-        const priceChanges = cryptos.map(crypto => crypto.price_change_percentage_24h);
-        const volumes = cryptos.map(crypto => crypto.total_volume);
+            if (recommendations) {
+                recommendations.forEach(rec => {
+                    const toast = document.createElement('div');
+                    toast.className = 'toast';
+                    let emoji = rec.action === 'buy' ? '🚀' : (rec.action === 'sell' ? '📉' : ' HOLD ');
+                    toast.innerHTML = `<strong>${emoji} ${rec.action.toUpperCase()} ${rec.name}</strong><br>${rec.reason} (Preço: $${rec.price.toFixed(2)})`;
+                    notificationsDiv.appendChild(toast);
 
-        // Gráfico de Pizza (Market Cap)
-        marketCapChartInstance = new Chart(document.getElementById('marketCapChart'), {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: marketCaps,
-                    backgroundColor: [
-                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-                        '#FF9F40', '#FFCD56', '#C9CBCF', '#4D5360', '#F7464A'
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 8000); // Notificação desaparece em 8 segundos
+                });
+            }
+        });
+
+        // --- Lógica original dos gráficos do Dashboard ---
+        let marketCapChartInstance = null;
+        let priceChartInstance = null;
+        let priceChangeChartInstance = null;
+        let volumeMarketCapChartInstance = null;
+
+        function destroyCharts() {
+            if (marketCapChartInstance) marketCapChartInstance.destroy();
+            if (priceChartInstance) priceChartInstance.destroy();
+            if (priceChangeChartInstance) priceChangeChartInstance.destroy();
+            if (volumeMarketCapChartInstance) volumeMarketCapChartInstance.destroy();
+        }
+
+        async function loadCryptoData() {
+            try {
+                const currency = document.getElementById('currencySelect').value;
+                const limit = document.getElementById('limitSelect').value;
+                const response = await fetch(`/get-top-cryptos?currency=${currency}&limit=${limit}`);
+                const data = await response.json();
+                renderCharts(data);
+                return data;
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+            } finally {
+                document.getElementById('loading-spinner').style.display = 'none';
+            }
+        }
+
+        function applyFilter(cryptos) {
+            const selectedCrypto = document.getElementById('cryptoFilter').value;
+            const filteredData = selectedCrypto === 'all' ? cryptos : cryptos.filter(crypto => crypto.name === selectedCrypto);
+            renderCharts(filteredData);
+        }
+
+        function calculateMovingAverage(data, windowSize) {
+            return data.map((val, idx, arr) => {
+                const start = Math.max(0, idx - windowSize + 1);
+                const end = idx + 1;
+                const subset = arr.slice(start, end);
+                const sum = subset.reduce((a, b) => a + b, 0);
+                return sum / subset.length;
+            });
+        }
+
+        function renderCharts(cryptos) {
+            if (!cryptos || cryptos.length === 0) return;
+            destroyCharts();
+
+            const labels = cryptos.map(crypto => crypto.name);
+            const marketCaps = cryptos.map(crypto => crypto.market_cap);
+            const prices = cryptos.map(crypto => crypto.current_price);
+            const priceChanges = cryptos.map(crypto => crypto.price_change_percentage_24h);
+            const volumes = cryptos.map(crypto => crypto.total_volume);
+
+            marketCapChartInstance = new Chart(document.getElementById('marketCapChart'), {
+                type: 'pie',
+                data: { labels: labels, datasets: [{ data: marketCaps, backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'] }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+            });
+
+            const currencyLabel = document.getElementById('currencySelect').value.toUpperCase();
+            priceChartInstance = new Chart(document.getElementById('priceChart'), {
+                type: 'bar',
+                data: { labels: labels, datasets: [{ label: `Preço (${currencyLabel})`, data: prices, backgroundColor: '#36A2EB' }] },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            });
+
+            const movingAverages = calculateMovingAverage(priceChanges, 7);
+            priceChangeChartInstance = new Chart(document.getElementById('priceChangeChart'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Variação (%)', data: priceChanges, borderColor: '#FF6384', fill: false },
+                        { label: 'Média Móvel (7 dias)', data: movingAverages, borderColor: '#36A2EB', fill: false }
                     ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            volumeMarketCapChartInstance = new Chart(document.getElementById('volumeMarketCapChart'), {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Volume vs. Market Cap',
+                        data: cryptos.map(crypto => ({ x: crypto.market_cap, y: crypto.total_volume })),
+                        backgroundColor: '#FFCE56'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Market Cap' } },
+                        y: { title: { display: true, text: 'Volume' } }
                     }
                 }
+            });
+        }
+
+        let initialCryptos = [];
+        // Carrega dados iniciais e configura listeners
+        loadCryptoData().then(data => {
+            if (data) {
+                initialCryptos = data;
+                document.getElementById('cryptoFilter').addEventListener('change', () => applyFilter(initialCryptos));
+                // Listener para aplicar novas configurações
+                document.getElementById('applySettingsBtn').addEventListener('click', () => {
+                    document.getElementById('loading-spinner').style.display = 'block';
+                    loadCryptoData().then(data => {
+                        initialCryptos = data;
+                        applyFilter(initialCryptos);
+                    });
+                });
             }
         });
-
-        // Gráfico de Barras (Preço das Criptomoedas)
-        priceChartInstance = new Chart(document.getElementById('priceChart'), {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Preço (USD)',
-                    data: prices,
-                    backgroundColor: '#36A2EB'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        // Gráfico de Linhas (Variação de Preço em 24h)
-        const movingAverages = calculateMovingAverage(priceChanges, 7); // Média móvel de 7 dias
-        priceChangeChartInstance = new Chart(document.getElementById('priceChangeChart'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Variação (%)',
-                        data: priceChanges,
-                        borderColor: '#FF6384',
-                        fill: false
-                    },
-                    {
-                        label: 'Média Móvel (7 dias)',
-                        data: movingAverages,
-                        borderColor: '#36A2EB',
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        // Gráfico de Dispersão (Volume vs. Market Cap)
-        volumeMarketCapChartInstance = new Chart(document.getElementById('volumeMarketCapChart'), {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: 'Volume vs. Market Cap',
-                    data: cryptos.map(crypto => ({
-                        x: crypto.market_cap,
-                        y: crypto.total_volume
-                    })),
-                    backgroundColor: '#FFCE56'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        type: 'linear',
-                        position: 'bottom',
-                        title: {
-                            display: true,
-                            text: 'Market Cap'
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Volume'
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // Carregar os dados ao abrir a página
-    let cryptos = [];
-    loadCryptoData().then(data => {
-        cryptos = data;
-        document.getElementById('cryptoFilter').addEventListener('change', () => applyFilter(cryptos));
     });
 </script>
 {% endblock %}

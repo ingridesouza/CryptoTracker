@@ -1,8 +1,75 @@
 {% extends "base.html" %}
 
+{% block styles %}
+<style>
+    .analysis-card {
+        border-radius: 15px;
+        padding: 20px;
+        color: white;
+        margin-bottom: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        transition: transform 0.3s ease;
+    }
+    .analysis-card:hover {
+        transform: translateY(-5px);
+    }
+    .gain {
+        background: linear-gradient(135deg, #28a745, #218838);
+    }
+    .loss {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+    }
+    .opportunity {
+        background: linear-gradient(135deg, #17a2b8, #138496);
+    }
+    .analysis-card h5 {
+        font-weight: bold;
+        font-size: 1.1rem;
+        border-bottom: 1px solid rgba(255,255,255,0.3);
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+    }
+    .analysis-card p {
+        font-size: 1.2rem;
+        margin: 0;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
+<div class="container mt-4">
+    <!-- Seção de Análise de Mercado -->
+    <div class="row mb-5">
+        <div class="col-12 text-center">
+            <h2>Análise de Mercado em Tempo Real</h2>
+            <p class="text-muted">Insights rápidos sobre as principais movimentações.</p>
+        </div>
+        <div class="col-md-4">
+            <div class="analysis-card gain">
+                <h5>Maior Alta (24h)</h5>
+                <p id="highest-gain">Aguardando dados...</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="analysis-card loss">
+                <h5>Maior Baixa (24h)</h5>
+                <p id="lowest-loss">Aguardando dados...</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="analysis-card opportunity">
+                <h5>Oportunidade de Compra</h5>
+                <p id="buy-opportunity">Aguardando dados...</p>
+            </div>
+        </div>
+        <div class="col-12 text-center mt-3">
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary">Ver Dashboard Completo &raquo;</a>
+        </div>
+    </div>
+</div>
+
     <div class="dashboard">
-        <!-- Seção de Notificações de Análise de Mercado -->
+        <!-- O conteúdo original do dashboard começa aqui -->
         <section class="market-analysis">
             <h2 data-translate="market_analysis">Análise de Mercado</h2>
             <div id="notifications">
@@ -146,6 +213,50 @@
 {% endblock %}
 
 {% block scripts %}
-    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/conversor.js') }}"></script>
+<script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const socket = io();
+
+    socket.on('connect', function() {
+        console.log('Conectado ao servidor Socket.IO!');
+    });
+
+    socket.on('market_summary_update', function(data) {
+        console.log('Análise recebida:', data);
+        const gainElement = document.getElementById('highest-gain');
+        const lossElement = document.getElementById('lowest-loss');
+        const opportunityElement = document.getElementById('buy-opportunity');
+
+        if (data.highest_gain && data.highest_gain.name) {
+            gainElement.innerHTML = `<strong>${data.highest_gain.name}</strong>: <span style="color: #d4edda;">${data.highest_gain.change}</span>`;
+        } else {
+            gainElement.textContent = 'N/A';
+        }
+
+        if (data.lowest_loss && data.lowest_loss.name) {
+            lossElement.innerHTML = `<strong>${data.lowest_loss.name}</strong>: <span style="color: #f8d7da;">${data.lowest_loss.change}</span>`;
+        } else {
+            lossElement.textContent = 'N/A';
+        }
+
+        if (data.buy_opportunity && data.buy_opportunity.name) {
+            opportunityElement.innerHTML = `<strong>${data.buy_opportunity.name}</strong><br><small>${data.buy_opportunity.reason}</small>`;
+        } else {
+            opportunityElement.textContent = 'Nenhuma oportunidade clara.';
+        }
+    });
+
+    // Mantém os scripts originais
+    const originalScripts = [
+        "{{ url_for('static', filename='js/script.js') }}",
+        "{{ url_for('static', filename='js/conversor.js') }}"
+    ];
+    originalScripts.forEach(src => {
+        const script = document.createElement('script');
+        script.src = src;
+        document.body.appendChild(script);
+    });
+});
+</script>
 {% endblock %}
