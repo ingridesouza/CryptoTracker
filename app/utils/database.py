@@ -1,15 +1,18 @@
 import sqlite3
+import os
+
+DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'crypto_analysis.db')
 
 def get_db_connection():
-    conn = sqlite3.connect('crypto_analysis.db')
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 def initialize_database():
     conn = get_db_connection()
-    cursor = conn.cursor()
-    # Cria a tabela caso não exista
-    cursor.execute('''
+    c = conn.cursor()
+
+    c.execute('''
         CREATE TABLE IF NOT EXISTS cryptos (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
@@ -19,20 +22,79 @@ def initialize_database():
         )
     ''')
 
-    # Garante que a coluna price_change_percentage_24h exista
-    cursor.execute("PRAGMA table_info(cryptos)")
-    columns = [col[1] for col in cursor.fetchall()]
-    if 'price_change_percentage_24h' not in columns:
-        cursor.execute('ALTER TABLE cryptos ADD COLUMN price_change_percentage_24h REAL')
-    cursor.execute('''
+    c.execute('''
         CREATE TABLE IF NOT EXISTS analysis (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             crypto_id TEXT NOT NULL,
-            action TEXT NOT NULL,  -- "buy", "sell", "hold"
-            reason TEXT NOT NULL,  -- Motivo da recomendação
+            action TEXT NOT NULL,
+            reason TEXT NOT NULL,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (crypto_id) REFERENCES cryptos (id)
         )
     ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            currency_pref TEXT DEFAULT 'usd',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS portfolio (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            crypto_id TEXT NOT NULL,
+            crypto_name TEXT NOT NULL,
+            amount REAL NOT NULL,
+            purchase_price REAL NOT NULL,
+            purchase_date DATE,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS watchlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            crypto_id TEXT NOT NULL,
+            crypto_name TEXT NOT NULL,
+            added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            UNIQUE(user_id, crypto_id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS alerts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            crypto_id TEXT NOT NULL,
+            crypto_name TEXT NOT NULL,
+            condition TEXT NOT NULL,
+            target_price REAL NOT NULL,
+            active INTEGER DEFAULT 1,
+            triggered_at DATETIME,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+    ''')
+
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS price_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            crypto_id TEXT NOT NULL,
+            price REAL NOT NULL,
+            market_cap REAL,
+            volume REAL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     conn.commit()
     conn.close()
