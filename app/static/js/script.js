@@ -117,6 +117,7 @@ socket.on('alert_triggered', (data) => {
 const globalSearch   = document.getElementById('global-search');
 const searchDropdown = document.getElementById('search-dropdown');
 let searchTimer;
+let searchAbort = null;
 
 if (globalSearch && searchDropdown) {
   globalSearch.addEventListener('input', () => {
@@ -126,26 +127,48 @@ if (globalSearch && searchDropdown) {
 
     searchTimer = setTimeout(async () => {
       try {
-        const r = await fetch(`/crypto/${encodeURIComponent(q)}`);
-        if (!r.ok) { searchDropdown.classList.remove('open'); return; }
-        const d = await r.json();
-        if (d.error) { searchDropdown.classList.remove('open'); return; }
+        if (searchAbort) searchAbort.abort();
+        searchAbort = new AbortController();
 
-        const price = d.market_data?.current_price?.usd || 0;
-        searchDropdown.innerHTML = `
-          <div class="search-result-item" onclick="window.location='/coin/${d.id}'">
-            <img src="${d.image?.thumb || ''}" alt="${d.name}" style="width:24px;height:24px;border-radius:50%">
-            <div style="flex:1">
-              <div class="search-result-name">${d.name}</div>
-              <div class="search-result-symbol">${d.symbol?.toUpperCase()}</div>
+        const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: searchAbort.signal });
+        if (!r.ok) { searchDropdown.classList.remove('open'); return; }
+        const results = await r.json();
+
+        if (!results.length) {
+          searchDropdown.innerHTML = `
+            <div style="padding:14px 16px;font-size:12px;color:var(--text-muted);text-align:center">
+              Nenhum resultado para "${q}"
+            </div>`;
+          searchDropdown.classList.add('open');
+          return;
+        }
+
+        searchDropdown.innerHTML = results.slice(0, 7).map(c => `
+          <div class="search-result-item" onclick="window.location='/coin/${c.id}'" tabindex="0"
+               onkeydown="if(event.key==='Enter')window.location='/coin/${c.id}'">
+            ${c.thumb
+              ? `<img src="${c.thumb}" alt="${c.name}" onerror="this.style.display='none'">`
+              : `<div style="width:22px;height:22px;border-radius:50%;background:var(--bg-hover);flex-shrink:0"></div>`}
+            <div style="flex:1;min-width:0">
+              <div class="search-result-name">${c.name}</div>
+              <div class="search-result-symbol">${c.symbol}</div>
             </div>
-            <div style="font-family:var(--font-mono);font-size:13px;font-weight:600">
-              $${price >= 1 ? price.toLocaleString('en-US', { maximumFractionDigits: 2 }) : price.toFixed(6)}
-            </div>
-          </div>`;
+            ${c.rank ? `<div style="font-size:11px;color:var(--text-muted)">#${c.rank}</div>` : ''}
+          </div>`).join('');
+
         searchDropdown.classList.add('open');
-      } catch { searchDropdown.classList.remove('open'); }
-    }, 400);
+      } catch (e) {
+        if (e.name !== 'AbortError') searchDropdown.classList.remove('open');
+      }
+    }, 280);
+  });
+
+  globalSearch.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { searchDropdown.classList.remove('open'); globalSearch.blur(); }
+    if (e.key === 'Enter') {
+      const first = searchDropdown.querySelector('.search-result-item');
+      if (first) first.click();
+    }
   });
 
   document.addEventListener('click', (e) => {

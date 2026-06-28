@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
-from app.services.coingecko_service import get_top_cryptos, get_coin_details, get_converter_rate
+from app.services.coingecko_service import get_top_cryptos, get_coin_details, get_converter_rate, search_coins
 from app.services.history_service import get_price_history
 from app.services.global_service import get_global_stats, get_fear_greed, get_trending
 
@@ -49,6 +49,14 @@ def convert():
     if not from_id:
         return jsonify({'error': 'from_id obrigatório'}), 400
     return jsonify(get_converter_rate(from_id, to_currency, amount))
+
+@crypto_bp.route('/api/search')
+@login_required
+def search_crypto_api():
+    q = request.args.get('q', '').strip()
+    if len(q) < 2:
+        return jsonify([])
+    return jsonify(search_coins(q))
 
 @crypto_bp.route('/crypto/<crypto_id>')
 @login_required

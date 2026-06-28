@@ -112,6 +112,39 @@ def get_coin_details(crypto_id):
         return {'error': str(e)}
 
 
+def search_coins(query):
+    """Busca por nome ou símbolo — retorna lista de candidatos."""
+    q = query.strip().lower()
+    cache_key = f'search:{q}'
+    cached = _get(cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        resp = requests.get(
+            f'{BASE}/search',
+            params={'query': q},
+            headers=_headers(),
+            timeout=8,
+        )
+        resp.raise_for_status()
+        coins = resp.json().get('coins', [])
+        results = [
+            {
+                'id':     c['id'],
+                'name':   c['name'],
+                'symbol': c['symbol'].upper(),
+                'thumb':  c.get('thumb', ''),
+                'rank':   c.get('market_cap_rank'),
+            }
+            for c in coins[:12]
+        ]
+        _set(cache_key, results, ttl=120)
+        return results
+    except Exception as e:
+        return []
+
+
 def get_converter_rate(from_id, to_currency, amount=1.0):
     cache_key = f'rate:{from_id}:{to_currency}'
     cached = _get(cache_key)
