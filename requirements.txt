@@ -7,3 +7,4 @@ Flask-WTF==1.2.1
 python-socketio==5.13.0
 requests==2.26.0
 Werkzeug>=3.0.0
+python-dotenv==1.0.1
