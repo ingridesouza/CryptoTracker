@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% block title %}Alertas — CryptoTracker{% endblock %}
+
+{% block extra_css %}
+<style>
+.alerts-layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+@media (max-width: 900px) { .alerts-layout { grid-template-columns: 1fr; } }
+
+.alert-status-active    { color: var(--accent-green); }
+.alert-status-triggered { color: var(--text-muted); }
+.condition-above { color: var(--accent-green); }
+.condition-below { color: var(--accent-red); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Alertas de Preço</h1>
+  <p class="page-subtitle">Seja notificado quando uma moeda atingir o preço alvo</p>
+</div>
+
+<div class="alerts-layout">
+  <!-- Alerts table -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border)">
+      <span style="font-size:15px;font-weight:700"><i class="fa-solid fa-bell" style="color:var(--accent-blue);margin-right:6px"></i>Meus Alertas</span>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Moeda</th>
+            <th>Condição</th>
+            <th>Preço Alvo</th>
+            <th>Status</th>
+            <th>Criado em</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="alerts-tbody">
+          <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted)"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Create alert form -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-plus-circle" style="margin-right:5px"></i>Novo Alerta</div>
+    <div class="form-group">
+      <label class="form-label">ID da Moeda</label>
+      <input type="text" id="a-crypto-id" class="form-input" placeholder="bitcoin">
+      <div class="form-hint">ID CoinGecko em minúsculas</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nome</label>
+      <input type="text" id="a-crypto-name" class="form-input" placeholder="Bitcoin">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Condição</label>
+      <select id="a-condition" class="form-select">
+        <option value="above">Acima de (▲)</option>
+        <option value="below">Abaixo de (▼)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Preço Alvo (USD)</label>
+      <input type="number" id="a-target-price" class="form-input" placeholder="110000" min="0" step="any">
+    </div>
+    <button class="btn btn-primary w-full" id="create-alert-btn" style="margin-top:8px">
+      <i class="fa-solid fa-bell-plus"></i> Criar Alerta
+    </button>
+
+    <div class="divider"></div>
+    <div style="font-size:12px;color:var(--text-secondary)">
+      <i class="fa-solid fa-circle-info" style="margin-right:4px;color:var(--accent-blue)"></i>
+      Os alertas são verificados a cada 60 segundos. Você receberá uma notificação na tela quando o preço for atingido.
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/alerts.js') }}"></script>
+{% endblock %}

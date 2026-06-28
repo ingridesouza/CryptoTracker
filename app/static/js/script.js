@@ -1,358 +1,201 @@
-document.addEventListener('DOMContentLoaded', function () {
-    const themeToggleBtn = document.getElementById('theme-toggle-btn');
-    const body = document.body;
+/* script.js — Global: sidebar, ticker tape, search autocomplete, toasts, alerts badge */
 
-    // Verificar o tema salvo no localStorage
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark-mode') {
-        body.classList.add('dark-mode');
-        themeToggleBtn.textContent = '☀️ Modo Claro';
-    } else {
-        themeToggleBtn.textContent = '🌙 Modo Noturno';
-    }
+const socket = io();
 
-    // Alternar entre modo claro e noturno
-    themeToggleBtn.addEventListener('click', function () {
-        body.classList.toggle('dark-mode');
-        const isDarkMode = body.classList.contains('dark-mode');
-        localStorage.setItem('theme', isDarkMode ? 'dark-mode' : 'light-mode');
+/* ── Sidebar toggle ──────────────────────────────────────── */
+const sidebar       = document.getElementById('sidebar');
+const mainContent   = document.getElementById('main-content');
+const sidebarToggle = document.getElementById('sidebar-toggle');
+const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
 
-        // Atualizar o texto do botão de tema
-        const currentLanguage = localStorage.getItem('language') || 'en';
-        if (isDarkMode) {
-            themeToggleBtn.textContent = '☀️ ' + translations[currentLanguage].theme;
-        } else {
-            themeToggleBtn.textContent = '🌙 ' + translations[currentLanguage].theme;
-        }
-    });
+function applySidebarCollapsed(collapsed) {
+  sidebar && sidebar.classList.toggle('collapsed', collapsed);
+  mainContent && mainContent.classList.toggle('sidebar-collapsed', collapsed);
+}
 
-    // Variável para armazenar os dados anteriores das criptomoedas
-    let previousCryptoData = [];
+if (sidebarToggle) {
+  const saved = localStorage.getItem('ct-sidebar-collapsed') === '1';
+  applySidebarCollapsed(saved);
+  sidebarToggle.addEventListener('click', () => {
+    const now = sidebar.classList.contains('collapsed');
+    applySidebarCollapsed(!now);
+    localStorage.setItem('ct-sidebar-collapsed', !now ? '1' : '0');
+  });
+}
 
-    // Função para atualizar os dados das criptomoedas
-    function updateCryptoData() {
-        fetch('/get-top-cryptos')
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro ao buscar criptomoedas');
-                }
-                return response.json();
-            })
-            .then(data => {
-                const tableBody = document.querySelector('#crypto-table tbody');
-                const fromSelect = document.getElementById('from');
+if (mobileMenuBtn) {
+  mobileMenuBtn.addEventListener('click', () => {
+    sidebar && sidebar.classList.toggle('mobile-open');
+    sidebarOverlay && sidebarOverlay.classList.toggle('open');
+  });
+}
 
-                // Ordenar os dados pelo maior valor da moeda (current_price)
-                data.sort((a, b) => b.current_price - a.current_price);
+if (sidebarOverlay) {
+  sidebarOverlay.addEventListener('click', () => {
+    sidebar && sidebar.classList.remove('mobile-open');
+    sidebarOverlay.classList.remove('open');
+  });
+}
 
-                // Limpar a tabela e o seletor antes de preencher novamente
-                tableBody.innerHTML = '';
-                fromSelect.innerHTML = '';
+/* ── Toast system ────────────────────────────────────────── */
+function showToast(title, msg, type = 'blue', duration = 5000) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
 
-                // Selecionar aleatoriamente 3 das 5 primeiras moedas para animação
-                const top5 = data.slice(0, 5); // Pegar as 5 primeiras moedas
-                const random3 = top5.sort(() => 0.5 - Math.random()).slice(0, 3); // Selecionar 3 aleatórias
+  const icons = { green: 'fa-circle-check', red: 'fa-circle-exclamation', blue: 'fa-circle-info', yellow: 'fa-bell' };
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <i class="fa-solid ${icons[type] || icons.blue} toast-icon"></i>
+    <div class="toast-body">
+      <div class="toast-title">${title}</div>
+      ${msg ? `<div class="toast-msg">${msg}</div>` : ''}
+    </div>
+    <button onclick="this.closest('.toast').remove()" style="color:var(--text-muted);font-size:14px;padding:2px 6px;background:none;border:none;cursor:pointer">✕</button>
+  `;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('toast-exit');
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+window.showToast = showToast;
 
-                data.forEach((crypto, index) => {
-                    // Verificar se houve mudança no valor da criptomoeda
-                    const previousCrypto = previousCryptoData.find(c => c.id === crypto.id);
-                    const priceChange = previousCrypto ? crypto.current_price - previousCrypto.current_price : 0;
+/* ── Ticker tape ─────────────────────────────────────────── */
+function buildTicker(data) {
+  const track = document.getElementById('ticker-track');
+  if (!track || !data || !data.length) return;
 
-                    // Criar a linha da tabela
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${index + 1}</td>
-                        <td><img src="${crypto.image}" alt="${crypto.name}" class="crypto-icon"> ${crypto.name} (${crypto.symbol.toUpperCase()})</td>
-                        <td>$${crypto.current_price.toFixed(2)}</td>
-                        <td>$${crypto.market_cap.toLocaleString()}</td>
-                        <td>$${crypto.total_volume.toLocaleString()}</td>
-                        <td class="${crypto.price_change_percentage_24h >= 0 ? 'positive' : 'negative'}">${crypto.price_change_percentage_24h.toFixed(2)}%</td>
-                    `;
+  const fmt = (n) => n >= 1000
+    ? '$' + n.toLocaleString('en-US', { maximumFractionDigits: 2 })
+    : '$' + (n < 1 ? n.toFixed(6) : n.toFixed(2));
 
-                    // Aplicar animação de fundo apenas para 3 moedas aleatórias das 5 primeiras
-                    if (random3.includes(crypto) && priceChange !== 0) {
-                        row.classList.add(priceChange > 0 ? 'price-up' : 'price-down');
-                        setTimeout(() => {
-                            row.classList.remove('price-up', 'price-down');
-                        }, 1000); // Remover a classe após 1 segundo
-                    }
+  const items = data.map(c => {
+    const chg = c.change || 0;
+    const cls = chg >= 0 ? 'ticker-change-up' : 'ticker-change-down';
+    const arrow = chg >= 0 ? '▲' : '▼';
+    return `<span class="ticker-item">
+      <span class="ticker-symbol">${c.symbol}</span>
+      <span class="ticker-price">${fmt(c.price)}</span>
+      <span class="${cls}">${arrow} ${Math.abs(chg).toFixed(2)}%</span>
+    </span><span class="ticker-dot"></span>`;
+  }).join('');
 
-                    tableBody.appendChild(row);
+  track.innerHTML = items + items;
+}
+socket.on('ticker_update', buildTicker);
 
-                    // Preencher o seletor do conversor
-                    const option = document.createElement('option');
-                    option.value = crypto.id;
-                    option.text = `${crypto.name} (${crypto.symbol.toUpperCase()})`;
-                    fromSelect.appendChild(option);
-                });
+async function loadTickerNow() {
+  try {
+    const r = await fetch('/get-top-cryptos?limit=10');
+    if (!r.ok) return;
+    const data = await r.json();
+    if (!Array.isArray(data)) return;
+    buildTicker(data.map(c => ({
+      symbol: (c.symbol || '').toUpperCase(),
+      price:  c.current_price || 0,
+      change: Math.round((c.price_change_percentage_24h || 0) * 100) / 100,
+    })));
+  } catch { /* silently ignore — ticker is non-critical */ }
+}
 
-                // Atualizar os dados anteriores
-                previousCryptoData = data;
-            })
-            .catch(error => {
-                console.error('Erro ao buscar criptomoedas:', error);
-            });
-    }
+document.addEventListener('DOMContentLoaded', loadTickerNow);
 
-    function fetchMarketAnalysis() {
-        const notificationsDiv = document.getElementById('notifications');
-        
-        // Mostrar estado de carregamento com animação
-        notificationsDiv.innerHTML = `
-            <div class="loading-analysis">
-                <div class="spinner"></div>
-                <p>Buscando as melhores oportunidades de mercado...</p>
-            </div>
-        `;
-    
-        fetch('/analyze-market')
-            .then(response => {
-                if (!response.ok) throw new Error('Erro ao buscar análise de mercado');
-                return response.json();
-            })
-            .then(data => {
-                notificationsDiv.innerHTML = '';
-    
-                if (data.error) {
-                    showErrorMessage(data.error);
-                    return;
-                }
-    
-                // Filtrar apenas as moedas mais relevantes (top 5% ou que atendam a critérios específicos)
-                const relevantCryptos = filterRelevantCryptos(data.recommendations || []);
-                
-                if (relevantCryptos.length === 0) {
-                    showNoOpportunitiesMessage();
-                    return;
-                }
-    
-                // Exibir resumo do mercado
-                displayMarketSummary(data.market_summary);
-    
-                // Exibir apenas as 3 melhores oportunidades
-                const topOpportunities = relevantCryptos.slice(0, 3);
-                displayOpportunities(topOpportunities);
-    
-                // Botão para ver mais oportunidades (se houver)
-                if (relevantCryptos.length > 3) {
-                    addShowMoreButton(relevantCryptos.slice(3));
-                }
-    
-                addRefreshSection();
-            })
-            .catch(error => {
-                console.error('Erro na análise:', error);
-                showErrorMessage('Erro ao analisar as melhores oportunidades. Tente novamente.');
-            });
-    
-        // Funções auxiliares para melhor organização
-        function filterRelevantCryptos(recommendations) {
-            return recommendations
-                .filter(crypto => {
-                    // Critérios para considerar uma moeda relevante:
-                    // 1. Alta confiança (>70%) OU
-                    // 2. Grande variação de preço (>5%) OU
-                    // 3. Recomendação de compra com potencial alto
-                    return crypto.confidence > 70 || 
-                           Math.abs(crypto.price_change_24h) > 5 || 
-                           (crypto.action.toLowerCase().includes('comprar') && crypto.potential_gain > 10);
-                })
-                .sort((a, b) => {
-                    // Ordenar por: maior confiança, depois maior potencial de ganho
-                    if (b.confidence !== a.confidence) return b.confidence - a.confidence;
-                    return b.potential_gain - a.potential_gain;
-                });
-        }
-    
-        function displayMarketSummary(summary) {
-            if (!summary) return;
-            
-            const summaryDiv = document.createElement('div');
-            summaryDiv.className = 'market-summary';
-            
-            summaryDiv.innerHTML = `
-                <h3>📊 Resumo do Mercado</h3>
-                <div class="summary-grid">
-                    <div class="summary-item ${summary.sentiment === 'positive' ? 'positive' : 'negative'}">
-                        <span>Sentimento:</span>
-                        <strong>${summary.sentiment === 'positive' ? 'Positivo 🚀' : 'Negativo ⚠️'}</strong>
-                    </div>
-                    <div class="summary-item ${summary.top_gainer_change > 0 ? 'positive' : ''}">
-                        <span>Melhor desempenho (24h):</span>
-                        <strong>${summary.top_gainer || 'N/A'} ${summary.top_gainer_change > 0 ? '+' : ''}${summary.top_gainer_change}%</strong>
-                    </div>
-                    <div class="summary-item ${summary.top_loser_change < 0 ? 'negative' : ''}">
-                        <span>Maior queda (24h):</span>
-                        <strong>${summary.top_loser || 'N/A'} ${summary.top_loser_change}%</strong>
-                    </div>
-                </div>
-                <p class="summary-advice">${getMarketAdvice(summary.sentiment, summary.volatility)}</p>
-            `;
-            
-            notificationsDiv.appendChild(summaryDiv);
-        }
-    
-        function getMarketAdvice(sentiment, volatility) {
-            if (sentiment === 'positive' && volatility < 30) {
-                return "💡 Mercado em alta com baixa volatilidade - bom momento para investimentos consistentes";
-            } else if (sentiment === 'positive' && volatility >= 30) {
-                return "💡 Mercado em alta mas volátil - considere proteções contra quedas bruscas";
-            } else if (sentiment === 'negative' && volatility < 30) {
-                return "💡 Mercado em baixa estável - oportunidades de compra podem aparecer";
-            } else {
-                return "💡 Mercado volátil - cuidado com movimentos bruscos e considere stop-loss";
-            }
-        }
-    
-        function displayOpportunities(opportunities) {
-            opportunities.forEach((opp, index) => {
-                const oppElement = document.createElement('div');
-                oppElement.className = `notification ${opp.urgency} highlight`;
-                
-                // Ícone e cor baseado na ação
-                const { icon, color } = getOppIconAndColor(opp);
-                
-                oppElement.innerHTML = `
-                    <div class="opportunity-header" style="border-left: 4px solid ${color}">
-                        <span class="opp-icon">${icon}</span>
-                        <h4>${opp.name} (${opp.symbol})</h4>
-                        <span class="opp-price">$${opp.price.toFixed(2)}</span>
-                    </div>
-                    <div class="opportunity-content">
-                        <div class="opp-action ${opp.action.toLowerCase().includes('comprar') ? 'buy' : 'sell'}">
-                            <strong>${opp.action.toUpperCase()}</strong>
-                        </div>
-                        <p><strong>Potencial:</strong> 
-                            <span class="${opp.potential_gain > 0 ? 'positive' : 'negative'}">
-                                ${opp.potential_gain > 0 ? '+' : ''}${opp.potential_gain}%
-                            </span>
-                            (${opp.confidence}% de confiança)
-                        </p>
-                        <p class="opp-reason">${opp.reason}</p>
-                    </div>
-                    <div class="opportunity-footer">
-                        <div class="opp-stats">
-                            <span>24h: <span class="${opp.price_change_24h >= 0 ? 'positive' : 'negative'}">
-                                ${opp.price_change_24h >= 0 ? '+' : ''}${opp.price_change_24h}%
-                            </span></span>
-                            <span>Vol: $${opp.volume_24h.toLocaleString()}</span>
-                        </div>
-                        <button class="details-btn" data-id="${opp.id}">Detalhes</button>
-                    </div>
-                `;
-                
-                // Animação de entrada
-                setTimeout(() => {
-                    oppElement.style.opacity = '1';
-                    oppElement.style.transform = 'translateY(0)';
-                }, index * 150);
-                
-                notificationsDiv.appendChild(oppElement);
-            });
-        }
-    
-        function getOppIconAndColor(opportunity) {
-            if (opportunity.action.toLowerCase().includes('comprar')) {
-                return {
-                    icon: '🟢',
-                    color: '#2ecc71'
-                };
-            } else if (opportunity.action.toLowerCase().includes('vender')) {
-                return {
-                    icon: '🔴',
-                    color: '#e74c3c'
-                };
-            } else {
-                return {
-                    icon: '🟡',
-                    color: '#f39c12'
-                };
-            }
-        }
-    
-        function addShowMoreButton(hiddenOpportunities) {
-            const showMoreDiv = document.createElement('div');
-            showMoreDiv.className = 'show-more';
-            showMoreDiv.innerHTML = `
-                <button id="show-more-btn" class="show-more-btn">
-                    ↓ Mostrar mais oportunidades (${hiddenOpportunities.length})
-                </button>
-            `;
-            
-            notificationsDiv.appendChild(showMoreDiv);
-            
-            document.getElementById('show-more-btn').addEventListener('click', () => {
-                showMoreDiv.remove();
-                displayOpportunities(hiddenOpportunities);
-            });
-        }
-    
-        function showNoOpportunitiesMessage() {
-            notificationsDiv.innerHTML = `
-                <div class="notification info">
-                    <p>ℹ️ Nenhuma oportunidade relevante encontrada no momento.</p>
-                    <p>O mercado está estável sem movimentos significativos. Verifique novamente mais tarde.</p>
-                </div>
-            `;
-        }
-    
-        function showErrorMessage(message) {
-            notificationsDiv.innerHTML = `
-                <div class="notification error">
-                    <p>⚠️ ${message}</p>
-                    <button id="retry-analysis" class="retry-btn">Tentar novamente</button>
-                </div>
-            `;
-            document.getElementById('retry-analysis').addEventListener('click', fetchMarketAnalysis);
-        }
-    
-        function addRefreshSection() {
-            const refreshDiv = document.createElement('div');
-            refreshDiv.className = 'refresh-section';
-            refreshDiv.innerHTML = `
-                <button id="refresh-analysis" class="refresh-btn">
-                    🔄 Atualizar Análise
-                </button>
-                <span class="last-updated">Atualizado: ${new Date().toLocaleTimeString()}</span>
-            `;
-            notificationsDiv.appendChild(refreshDiv);
-            document.getElementById('refresh-analysis').addEventListener('click', fetchMarketAnalysis);
-        }
-    }
-
-    // Atualizar os dados das criptomoedas imediatamente e a cada 30 segundos
-    updateCryptoData();
-    setInterval(updateCryptoData, 30000); // 30 segundos
-
-    // Buscar e exibir as notificações de análise de mercado imediatamente e a cada 60 segundos
-    fetchMarketAnalysis();
-    setInterval(fetchMarketAnalysis, 60000); // 60 segundos
-
-    // Configurar o conversor
-    document.getElementById('converter-form').addEventListener('submit', function (e) {
-        e.preventDefault();
-
-        const from = document.getElementById('from').value;
-        const to = document.getElementById('to').value;
-        const amount = document.getElementById('amount').value;
-
-        fetch(`/crypto/${from}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erro ao buscar dados da criptomoeda');
-                }
-                return response.json();
-            })
-            .then(data => {
-                const priceInUSD = data.market_data.current_price.usd;
-                const convertedAmount = amount * priceInUSD;
-
-                document.getElementById('result').innerText = 
-                    `${amount} ${data.name} = ${convertedAmount.toFixed(2)} ${to.toUpperCase()}`;
-            })
-            .catch(error => {
-                console.error('Erro:', error);
-                document.getElementById('result').innerText = 'Erro ao converter moeda. Tente novamente.';
-            });
-    });
+/* ── Alert badge & real-time alert toasts ────────────────── */
+socket.on('alert_triggered', (data) => {
+  const condition = data.condition === 'above' ? 'acima de' : 'abaixo de';
+  showToast(
+    `Alerta: ${data.crypto_name}`,
+    `Preço $${(data.current_price || 0).toLocaleString()} — ${condition} $${(data.target_price || 0).toLocaleString()}`,
+    'yellow',
+    8000
+  );
 });
+
+/* ── Global search autocomplete ─────────────────────────── */
+const globalSearch   = document.getElementById('global-search');
+const searchDropdown = document.getElementById('search-dropdown');
+let searchTimer;
+
+if (globalSearch && searchDropdown) {
+  globalSearch.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    const q = globalSearch.value.trim();
+    if (q.length < 2) { searchDropdown.classList.remove('open'); return; }
+
+    searchTimer = setTimeout(async () => {
+      try {
+        const r = await fetch(`/crypto/${encodeURIComponent(q)}`);
+        if (!r.ok) { searchDropdown.classList.remove('open'); return; }
+        const d = await r.json();
+        if (d.error) { searchDropdown.classList.remove('open'); return; }
+
+        const price = d.market_data?.current_price?.usd || 0;
+        searchDropdown.innerHTML = `
+          <div class="search-result-item" onclick="window.location='/coin/${d.id}'">
+            <img src="${d.image?.thumb || ''}" alt="${d.name}" style="width:24px;height:24px;border-radius:50%">
+            <div style="flex:1">
+              <div class="search-result-name">${d.name}</div>
+              <div class="search-result-symbol">${d.symbol?.toUpperCase()}</div>
+            </div>
+            <div style="font-family:var(--font-mono);font-size:13px;font-weight:600">
+              $${price >= 1 ? price.toLocaleString('en-US', { maximumFractionDigits: 2 }) : price.toFixed(6)}
+            </div>
+          </div>`;
+        searchDropdown.classList.add('open');
+      } catch { searchDropdown.classList.remove('open'); }
+    }, 400);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!globalSearch.contains(e.target) && !searchDropdown.contains(e.target)) {
+      searchDropdown.classList.remove('open');
+    }
+  });
+}
+
+/* ── Number formatter helpers (global) ───────────────────── */
+function fmtUSD(n, digits = 2) {
+  if (!n && n !== 0) return '—';
+  if (n >= 1e12) return '$' + (n / 1e12).toFixed(2) + 'T';
+  if (n >= 1e9)  return '$' + (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6)  return '$' + (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3)  return '$' + n.toLocaleString('en-US', { maximumFractionDigits: digits });
+  return '$' + n.toFixed(n < 0.01 ? 6 : digits);
+}
+
+function fmtPct(n) {
+  if (n === null || n === undefined) return '<span style="color:var(--text-muted)">—</span>';
+  const cls   = n >= 0 ? 'change-up' : 'change-down';
+  const arrow = n >= 0 ? '▲' : '▼';
+  return `<span class="${cls}">${arrow} ${Math.abs(n).toFixed(2)}%</span>`;
+}
+
+function fmtNum(n) {
+  if (!n && n !== 0) return '—';
+  if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T';
+  if (n >= 1e9)  return (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6)  return (n / 1e6).toFixed(2) + 'M';
+  return n.toLocaleString();
+}
+
+window.fmtUSD = fmtUSD;
+window.fmtPct = fmtPct;
+window.fmtNum = fmtNum;
+
+/* ── Sparkline SVG helper ────────────────────────────────── */
+function sparklineSVG(prices, positive) {
+  if (!prices || prices.length < 2) return '';
+  const w = 80, h = 32, pad = 2;
+  const min = Math.min(...prices), max = Math.max(...prices);
+  const range = max - min || 1;
+  const pts = prices.map((p, i) => {
+    const x = pad + (i / (prices.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((p - min) / range) * (h - pad * 2);
+    return `${x},${y}`;
+  }).join(' ');
+  const color = positive ? 'var(--accent-green)' : 'var(--accent-red)';
+  return `<svg class="sparkline-svg" viewBox="0 0 ${w} ${h}"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+}
+window.sparklineSVG = sparklineSVG;

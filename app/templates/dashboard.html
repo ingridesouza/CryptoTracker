@@ -1,244 +1,80 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% block title %}Dashboard — CryptoTracker{% endblock %}
 
-{% block title %}Dashboard - CryptoTracker{% endblock %}
+{% block extra_css %}
+<style>
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
 
-{% block content %}
-<!-- Header do Dashboard (fora do container) -->
-<div class="dashboard-header">
-    <h1>CryptoTracker Dashboard</h1>
-    <p class="dashboard-description">
-        Explore gráficos detalhados, acompanhe tendências de mercado e monitore o desempenho das principais criptomoedas. Tudo em um só lugar, projetado para investidores como você.
-    </p>
-</div>
+.chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; transition: border-color var(--transition), box-shadow var(--transition); }
+.chart-card:hover { border-color: var(--border-glow); box-shadow: var(--glow-blue); }
+.chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.chart-title { font-size: 14px; font-weight: 700; }
+.chart-wrap { position: relative; height: 240px; }
 
-<!-- Filtro Dinâmico -->
-<div class="filter-container">
-    <label for="cryptoFilter">Filtrar por Criptomoeda:</label>
-    <select id="cryptoFilter">
-        <option value="all">Todas</option>
-        <option value="Bitcoin">Bitcoin</option>
-        <option value="Ethereum">Ethereum</option>
-        <option value="Binance Coin">Binance Coin</option>
-        <!-- Adicione mais opções conforme necessário -->
-    </select>
-</div>
-
-<!-- Grade de Gráficos -->
-<div class="dashboard-grid">
-    <!-- Gráfico de Pizza (Market Cap) -->
-    <div class="chart-container">
-        <h2 data-translate="market_cap_distribution">Distribuição de Market Cap</h2>
-        <canvas id="marketCapChart"></canvas>
-    </div>
-
-    <!-- Gráfico de Barras (Preço das Criptomoedas) -->
-    <div class="chart-container">
-        <h2 data-translate="crypto_prices">Preço das Criptomoedas</h2>
-        <canvas id="priceChart"></canvas>
-    </div>
-
-    <!-- Gráfico de Linhas (Variação de Preço em 24h) -->
-    <div class="chart-container">
-        <h2 data-translate="price_change_24h">Variação de Preço em 24h</h2>
-        <canvas id="priceChangeChart"></canvas>
-    </div>
-
-    <!-- Gráfico de Dispersão (Volume vs. Market Cap) -->
-    <div class="chart-container">
-        <h2 data-translate="volume_vs_market_cap">Volume vs. Market Cap</h2>
-        <canvas id="volumeMarketCapChart"></canvas>
-    </div>
-</div>
-
-<!-- Spinner de Carregamento -->
-<div id="loading-spinner" class="spinner"></div>
+.dashboard-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.dashboard-controls label { font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+.ctrl-select { padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 13px; }
+.ctrl-input { padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 13px; width: 70px; }
+.ctrl-btn { padding: 6px 14px; background: var(--accent-blue); color: #0d1117; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; cursor: pointer; transition: background var(--transition); }
+.ctrl-btn:hover { background: #79b8ff; }
+</style>
 {% endblock %}
 
-{% block scripts %}
-<script>
-    // Variáveis para armazenar as instâncias dos gráficos
-    let marketCapChartInstance = null;
-    let priceChartInstance = null;
-    let priceChangeChartInstance = null;
-    let volumeMarketCapChartInstance = null;
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title">Dashboard</h1>
+  <p class="page-subtitle">Análise visual do mercado cripto</p>
+</div>
 
-    // Função para destruir gráficos antigos
-    function destroyCharts() {
-        if (marketCapChartInstance) {
-            marketCapChartInstance.destroy();
-        }
-        if (priceChartInstance) {
-            priceChartInstance.destroy();
-        }
-        if (priceChangeChartInstance) {
-            priceChangeChartInstance.destroy();
-        }
-        if (volumeMarketCapChartInstance) {
-            volumeMarketCapChartInstance.destroy();
-        }
-    }
+<div class="dashboard-controls">
+  <div style="display:flex;align-items:center;gap:6px">
+    <label>Moeda:</label>
+    <select class="ctrl-select" id="dash-currency">
+      <option value="usd">USD</option>
+      <option value="brl">BRL</option>
+      <option value="eur">EUR</option>
+    </select>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px">
+    <label>Top:</label>
+    <input type="number" class="ctrl-input" id="dash-limit" value="20" min="5" max="100">
+  </div>
+  <button class="ctrl-btn" id="dash-apply"><i class="fa-solid fa-rotate"></i> Atualizar</button>
+  <div id="dash-status" style="font-size:12px;color:var(--text-muted)"></div>
+</div>
 
-    // Função para carregar os dados das criptomoedas
-    async function loadCryptoData() {
-        try {
-            const response = await fetch('/get-top-cryptos'); // Endpoint para buscar dados
-            const data = await response.json();
-            renderCharts(data);
-        } catch (error) {
-            console.error('Erro ao carregar dados:', error);
-        } finally {
-            // Ocultar o spinner após carregar os dados
-            document.getElementById('loading-spinner').style.display = 'none';
-        }
-    }
+<div class="charts-grid">
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title"><i class="fa-solid fa-chart-pie" style="color:var(--accent-blue);margin-right:6px"></i>Distribuição Market Cap</span>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-mcap"></canvas></div>
+  </div>
 
-    // Função para aplicar o filtro
-    function applyFilter(cryptos) {
-        const selectedCrypto = document.getElementById('cryptoFilter').value;
-        const filteredData = selectedCrypto === 'all' ? cryptos : cryptos.filter(crypto => crypto.name === selectedCrypto);
-        renderCharts(filteredData);
-    }
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title"><i class="fa-solid fa-chart-bar" style="color:var(--accent-purple);margin-right:6px"></i>Preços Atuais</span>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-prices"></canvas></div>
+  </div>
 
-    // Função para calcular a média móvel
-    function calculateMovingAverage(data, windowSize) {
-        return data.map((val, idx, arr) => {
-            const start = Math.max(0, idx - windowSize + 1);
-            const end = idx + 1;
-            const subset = arr.slice(start, end);
-            const sum = subset.reduce((a, b) => a + b, 0);
-            return sum / subset.length;
-        });
-    }
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title"><i class="fa-solid fa-chart-line" style="color:var(--accent-green);margin-right:6px"></i>Variação 24h (%)</span>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-changes"></canvas></div>
+  </div>
 
-    // Função para renderizar os gráficos
-    function renderCharts(cryptos) {
-        destroyCharts(); // Destruir gráficos antigos antes de criar novos
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title"><i class="fa-solid fa-circle-dot" style="color:var(--accent-yellow);margin-right:6px"></i>Volume vs Market Cap</span>
+    </div>
+    <div class="chart-wrap"><canvas id="chart-scatter"></canvas></div>
+  </div>
+</div>
+{% endblock %}
 
-        const labels = cryptos.map(crypto => crypto.name);
-        const marketCaps = cryptos.map(crypto => crypto.market_cap);
-        const prices = cryptos.map(crypto => crypto.current_price);
-        const priceChanges = cryptos.map(crypto => crypto.price_change_percentage_24h);
-        const volumes = cryptos.map(crypto => crypto.total_volume);
-
-        // Gráfico de Pizza (Market Cap)
-        marketCapChartInstance = new Chart(document.getElementById('marketCapChart'), {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: marketCaps,
-                    backgroundColor: [
-                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-                        '#FF9F40', '#FFCD56', '#C9CBCF', '#4D5360', '#F7464A'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-
-        // Gráfico de Barras (Preço das Criptomoedas)
-        priceChartInstance = new Chart(document.getElementById('priceChart'), {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Preço (USD)',
-                    data: prices,
-                    backgroundColor: '#36A2EB'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        // Gráfico de Linhas (Variação de Preço em 24h)
-        const movingAverages = calculateMovingAverage(priceChanges, 7); // Média móvel de 7 dias
-        priceChangeChartInstance = new Chart(document.getElementById('priceChangeChart'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Variação (%)',
-                        data: priceChanges,
-                        borderColor: '#FF6384',
-                        fill: false
-                    },
-                    {
-                        label: 'Média Móvel (7 dias)',
-                        data: movingAverages,
-                        borderColor: '#36A2EB',
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        // Gráfico de Dispersão (Volume vs. Market Cap)
-        volumeMarketCapChartInstance = new Chart(document.getElementById('volumeMarketCapChart'), {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: 'Volume vs. Market Cap',
-                    data: cryptos.map(crypto => ({
-                        x: crypto.market_cap,
-                        y: crypto.total_volume
-                    })),
-                    backgroundColor: '#FFCE56'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        type: 'linear',
-                        position: 'bottom',
-                        title: {
-                            display: true,
-                            text: 'Market Cap'
-                        }
-                    },
-                    y: {
-                        title: {
-                            display: true,
-                            text: 'Volume'
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // Carregar os dados ao abrir a página
-    let cryptos = [];
-    loadCryptoData().then(data => {
-        cryptos = data;
-        document.getElementById('cryptoFilter').addEventListener('change', () => applyFilter(cryptos));
-    });
-</script>
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

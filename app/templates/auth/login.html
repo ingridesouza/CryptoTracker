@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — CryptoTracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/design-system.css') }}">
+  <style>
+    body {
+      background: var(--bg-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    /* Animated background grid */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(88,166,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(88,166,255,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+    /* Glow orbs */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -200px;
+      left: -200px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(88,166,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .auth-wrap {
+      width: 100%;
+      max-width: 420px;
+      position: relative;
+      z-index: 1;
+    }
+    .auth-logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .auth-logo-icon {
+      font-size: 32px;
+      color: var(--accent-blue);
+      display: block;
+      margin-bottom: 8px;
+    }
+    .auth-logo-text {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.03em;
+    }
+    .auth-logo-text span { color: var(--accent-blue); }
+    .auth-logo-tagline { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+    .auth-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 36px;
+      box-shadow: var(--shadow-lg), 0 0 80px rgba(88,166,255,0.06);
+    }
+    .auth-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .auth-subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 28px; }
+
+    .form-group { margin-bottom: 18px; }
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .input-wrap { position: relative; }
+    .input-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 11px 12px 11px 36px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 14px;
+      transition: border-color .18s, box-shadow .18s;
+    }
+    .form-input:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 3px rgba(88,166,255,0.12);
+      outline: none;
+    }
+    .btn-auth {
+      width: 100%;
+      padding: 12px;
+      background: var(--accent-blue);
+      color: #0d1117;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .18s, box-shadow .18s, transform .1s;
+      margin-top: 8px;
+      letter-spacing: 0.01em;
+    }
+    .btn-auth:hover {
+      background: #79b8ff;
+      box-shadow: var(--glow-blue);
+      transform: translateY(-1px);
+    }
+    .btn-auth:active { transform: translateY(0); }
+    .auth-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .auth-footer a { color: var(--accent-blue); font-weight: 600; }
+    .auth-footer a:hover { text-decoration: underline; }
+    .flash { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 16px; }
+    .flash-error   { background: rgba(248,81,73,0.12); border: 1px solid rgba(248,81,73,0.3); color: var(--accent-red); }
+    .flash-success { background: rgba(63,185,80,0.12); border: 1px solid rgba(63,185,80,0.3);  color: var(--accent-green); }
+  </style>
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-logo">
+      <i class="fa-solid fa-chart-line auth-logo-icon"></i>
+      <div class="auth-logo-text">Crypto<span>Tracker</span></div>
+      <div class="auth-logo-tagline">Plataforma de análise cripto em tempo real</div>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-title">Bem-vindo de volta</div>
+      <div class="auth-subtitle">Entre para acessar seu portfolio e alertas</div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="POST" action="{{ url_for('auth.login') }}">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-envelope input-icon"></i>
+            <input type="email" name="email" class="form-input" placeholder="seu@email.com" required autocomplete="email">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Senha</label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-lock input-icon"></i>
+            <input type="password" name="password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+          </div>
+        </div>
+        <button type="submit" class="btn-auth">
+          <i class="fa-solid fa-right-to-bracket"></i> Entrar
+        </button>
+      </form>
+
+      <div class="auth-footer">
+        Não tem conta? <a href="{{ url_for('auth.register') }}">Criar conta gratuita</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

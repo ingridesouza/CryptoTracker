@@ -1,29 +1,135 @@
 import requests
-from flask import jsonify  # Adicione esta linha para importar jsonify
-from app.utils.database import get_db_connection
-from flask import current_app
+import os
+import time
 
-def get_top_cryptos():
+BASE = 'https://api.coingecko.com/api/v3'
+
+# ── In-memory TTL cache ──────────────────────────────────────
+_cache: dict = {}
+
+def _get(key):
+    entry = _cache.get(key)
+    if entry and (time.time() - entry['ts']) < entry['ttl']:
+        return entry['data']
+    return None
+
+def _set(key, data, ttl):
+    _cache[key] = {'data': data, 'ts': time.time(), 'ttl': ttl}
+
+# ── Helpers ──────────────────────────────────────────────────
+def _headers():
+    key = os.getenv('API_COINGECKO')
+    return {'x-cg-demo-api-key': key} if key else {}
+
+# ── Public API ───────────────────────────────────────────────
+def get_top_cryptos(limit=20, currency='usd'):
+    cache_key = f'top_cryptos:{limit}:{currency}'
+    cached = _get(cache_key)
+    if cached is not None:
+        return cached
+
     try:
-        response = requests.get(
-            f"{current_app.config['COINGECKO_API_URL']}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=20&page=1&sparkline=false",
-            headers={"x-cg-demo-api-key": current_app.config['COINGECKO_API_KEY']}
+        resp = requests.get(
+            f'{BASE}/coins/markets',
+            params={
+                'vs_currency': currency,
+                'order': 'market_cap_desc',
+                'per_page': limit,
+                'page': 1,
+                'sparkline': 'true',
+                'price_change_percentage': '1h,24h,7d',
+            },
+            headers=_headers(),
+            timeout=10,
         )
-        if response.status_code != 200:
-            return jsonify({"error": "Erro ao buscar criptomoedas"}), 400
+        resp.raise_for_status()
+        data = resp.json()
 
-        cryptos = response.json()
-
+        # Persist to local DB for analysis_service
+        from app.utils.database import get_db_connection
         conn = get_db_connection()
-        cursor = conn.cursor()
-        for crypto in cryptos:
-            cursor.execute('''
-                INSERT OR REPLACE INTO cryptos (id, name, price)
-                VALUES (?, ?, ?)
-            ''', (crypto["id"], crypto["name"], crypto["current_price"]))
+        for c in data:
+            conn.execute(
+                'INSERT OR REPLACE INTO cryptos (id, name, price, price_change_percentage_24h, timestamp) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
+                (c['id'], c['name'], c.get('current_price', 0), c.get('price_change_percentage_24h', 0))
+            )
         conn.commit()
         conn.close()
 
-        return jsonify(cryptos)
+        _set(cache_key, data, ttl=90)
+        return data
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return {'error': str(e)}
+
+
+def get_current_prices(crypto_ids):
+    if not crypto_ids:
+        return {}
+    cache_key = 'prices:' + ','.join(sorted(crypto_ids))
+    cached = _get(cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        resp = requests.get(
+            f'{BASE}/simple/price',
+            params={'ids': ','.join(crypto_ids), 'vs_currencies': 'usd,brl,eur'},
+            headers=_headers(),
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        _set(cache_key, data, ttl=90)
+        return data
+    except Exception:
+        return {}
+
+
+def get_coin_details(crypto_id):
+    cache_key = f'coin:{crypto_id}'
+    cached = _get(cache_key)
+    if cached is not None:
+        return cached
+
+    try:
+        resp = requests.get(
+            f'{BASE}/coins/{crypto_id}',
+            params={
+                'localization': 'false',
+                'tickers': 'false',
+                'market_data': 'true',
+                'community_data': 'false',
+                'developer_data': 'false',
+            },
+            headers=_headers(),
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        _set(cache_key, data, ttl=120)
+        return data
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def get_converter_rate(from_id, to_currency, amount=1.0):
+    cache_key = f'rate:{from_id}:{to_currency}'
+    cached = _get(cache_key)
+    rate = None
+    if cached is not None:
+        rate = cached
+    else:
+        try:
+            resp = requests.get(
+                f'{BASE}/simple/price',
+                params={'ids': from_id, 'vs_currencies': to_currency},
+                headers=_headers(),
+                timeout=10,
+            )
+            resp.raise_for_status()
+            rate = resp.json().get(from_id, {}).get(to_currency, 0)
+            _set(cache_key, rate, ttl=90)
+        except Exception as e:
+            return {'error': str(e), 'rate': 0, 'result': 0}
+
+    return {'rate': rate, 'result': rate * amount}
