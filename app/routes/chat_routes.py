@@ -1,26 +1,55 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, session, Response, stream_with_context
+from flask_login import login_required, current_user
 from app.services.deepseek_service import DeepSeekService
+from app.services.context_service import build_user_context
 import logging
 
 logger = logging.getLogger(__name__)
 
 chat_bp = Blueprint('chat', __name__)
 
-@chat_bp.route('/get-bot-response', methods=['POST'])
-def get_bot_response():
+MAX_HISTORY = 8  # trocas (8 user + 8 assistant = 16 msgs enviadas ao modelo)
+
+
+@chat_bp.route('/chat/stream', methods=['POST'])
+@login_required
+def stream_response():
+    """Endpoint SSE — envia chunks à medida que chegam da DeepSeek."""
     try:
-        logger.debug("Recebendo mensagem do usuário...")
-        user_message = request.json.get('message', '').strip()
+        body = request.get_json(silent=True) or {}
+        user_message = body.get('message', '').strip()
+        history = body.get('history', [])  # histórico vem do cliente
+
         if not user_message:
-            logger.warning("Mensagem do usuário está vazia.")
-            return jsonify({"response": "Por favor, envie uma mensagem válida."}), 400
+            def err():
+                yield 'data: {"error":"empty"}\n\n'
+            return Response(err(), content_type='text/event-stream')
 
-        logger.debug(f"Mensagem recebida: {user_message}")
-        deepseek_service = DeepSeekService()
-        bot_response = deepseek_service.get_bot_response(user_message)
-        logger.debug(f"Resposta do DeepSeek: {bot_response}")
+        user_context = build_user_context(current_user.id)
+        svc = DeepSeekService()
 
-        return jsonify({"response": bot_response})
+        def generate():
+            for chunk in svc.stream_response(user_message, user_context=user_context, history=history):
+                yield chunk
+
+        return Response(
+            stream_with_context(generate()),
+            content_type='text/event-stream',
+            headers={
+                'Cache-Control': 'no-cache',
+                'X-Accel-Buffering': 'no',
+                'Transfer-Encoding': 'chunked',
+            },
+        )
     except Exception as e:
-        logger.error(f"Erro ao processar a mensagem: {str(e)}")
-        return jsonify({"response": "Erro ao processar sua mensagem."}), 500
+        logger.error(f"stream error: {e}")
+        def err():
+            yield 'data: {"error":"server"}\n\n'
+        return Response(err(), content_type='text/event-stream')
+
+
+@chat_bp.route('/chat/clear', methods=['POST'])
+@login_required
+def clear_history():
+    session.pop('chat_history', None)
+    return jsonify({"ok": True})
