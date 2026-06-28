@@ -16,8 +16,6 @@
       align-items: center;
       justify-content: center;
       padding: 24px;
-      position: relative;
-      overflow: hidden;
     }
     body::before {
       content: '';
@@ -29,35 +27,34 @@
       background-size: 40px 40px;
       pointer-events: none;
     }
-    .auth-wrap { width: 100%; max-width: 420px; position: relative; z-index: 1; }
-    .auth-logo { text-align: center; margin-bottom: 32px; }
-    .auth-logo-icon { font-size: 32px; color: var(--accent-blue); display: block; margin-bottom: 8px; }
-    .auth-logo-text { font-size: 22px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.03em; }
+    .auth-wrap { width: 100%; max-width: 400px; position: relative; z-index: 1; }
+    .auth-logo { text-align: center; margin-bottom: 28px; }
+    .auth-logo-icon { font-size: 28px; color: var(--accent-blue); display: block; margin-bottom: 8px; }
+    .auth-logo-text { font-size: 20px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.03em; }
     .auth-logo-text span { color: var(--accent-blue); }
-    .auth-logo-tagline { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
     .auth-card {
       background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: var(--radius-xl); padding: 36px;
-      box-shadow: var(--shadow-lg), 0 0 80px rgba(88,166,255,0.06);
+      border-radius: var(--radius-lg); padding: 32px;
+      box-shadow: var(--shadow);
     }
-    .auth-title { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
-    .auth-subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 28px; }
-    .form-group { margin-bottom: 16px; }
-    .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .auth-title { font-size: 18px; font-weight: 700; color: var(--text-primary); margin-bottom: 3px; }
+    .auth-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 5px; }
     .input-wrap { position: relative; }
-    .input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 13px; }
-    .form-input { width: 100%; padding: 11px 12px 11px 36px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 14px; transition: border-color .18s, box-shadow .18s; }
-    .form-input:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(88,166,255,0.12); outline: none; }
-    .btn-auth { width: 100%; padding: 12px; background: var(--accent-blue); color: #0d1117; border: none; border-radius: var(--radius-sm); font-size: 14px; font-weight: 700; cursor: pointer; transition: background .18s, box-shadow .18s, transform .1s; margin-top: 8px; }
-    .btn-auth:hover { background: #79b8ff; box-shadow: var(--glow-blue); transform: translateY(-1px); }
-    .auth-footer { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-secondary); }
+    .input-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 12px; pointer-events: none; }
+    .form-input { width: 100%; padding: 10px 12px 10px 32px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; font-family: inherit; outline: none; transition: border-color .15s, box-shadow .15s; }
+    .form-input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px rgba(88,166,255,0.1); }
+    .btn-auth { width: 100%; padding: 11px; background: var(--accent-blue); color: #0d1117; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; cursor: pointer; transition: filter .15s; margin-top: 6px; font-family: inherit; }
+    .btn-auth:hover { filter: brightness(1.1); }
+    .auth-footer { text-align: center; margin-top: 18px; font-size: 13px; color: var(--text-secondary); }
     .auth-footer a { color: var(--accent-blue); font-weight: 600; }
-    .flash { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 16px; }
+    .flash { padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 14px; }
     .flash-error   { background: rgba(248,81,73,0.12); border: 1px solid rgba(248,81,73,0.3); color: var(--accent-red); }
     .flash-success { background: rgba(63,185,80,0.12); border: 1px solid rgba(63,185,80,0.3); color: var(--accent-green); }
-    .perks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 24px; }
-    .perk { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
-    .perk i { color: var(--accent-blue); font-size: 11px; }
+    .perks { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 20px; }
+    .perk { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); }
+    .perk i { color: var(--accent-green); font-size: 10px; }
   </style>
 </head>
 <body>
@@ -65,17 +62,16 @@
     <div class="auth-logo">
       <i class="fa-solid fa-chart-line auth-logo-icon"></i>
       <div class="auth-logo-text">Crypto<span>Tracker</span></div>
-      <div class="auth-logo-tagline">Plataforma de análise cripto em tempo real</div>
     </div>
     <div class="auth-card">
       <div class="auth-title">Criar conta gratuita</div>
-      <div class="auth-subtitle">Comece a monitorar seus investimentos agora</div>
+      <div class="auth-subtitle">Comece a monitorar seus investimentos</div>
 
       <div class="perks">
-        <div class="perk"><i class="fa-solid fa-check-circle"></i> Portfolio tracker</div>
-        <div class="perk"><i class="fa-solid fa-check-circle"></i> Alertas de preço</div>
-        <div class="perk"><i class="fa-solid fa-check-circle"></i> Gráficos históricos</div>
-        <div class="perk"><i class="fa-solid fa-check-circle"></i> IA de investimentos</div>
+        <div class="perk"><i class="fa-solid fa-check"></i>Portfolio tracker</div>
+        <div class="perk"><i class="fa-solid fa-check"></i>Alertas de preço</div>
+        <div class="perk"><i class="fa-solid fa-check"></i>Gráficos históricos</div>
+        <div class="perk"><i class="fa-solid fa-check"></i>Assistente IA</div>
       </div>
 
       {% with messages = get_flashed_messages(with_categories=true) %}
@@ -89,7 +85,7 @@
           <label class="form-label">Nome de usuário</label>
           <div class="input-wrap">
             <i class="fa-solid fa-user input-icon"></i>
-            <input type="text" name="username" class="form-input" placeholder="seunome" required>
+            <input type="text" name="username" class="form-input" placeholder="seunome" required autocomplete="username">
           </div>
         </div>
         <div class="form-group">
@@ -106,9 +102,7 @@
             <input type="password" name="password" class="form-input" placeholder="Mínimo 6 caracteres" required autocomplete="new-password">
           </div>
         </div>
-        <button type="submit" class="btn-auth">
-          <i class="fa-solid fa-user-plus"></i> Criar conta
-        </button>
+        <button type="submit" class="btn-auth">Criar conta</button>
       </form>
       <div class="auth-footer">
         Já tem conta? <a href="{{ url_for('auth.login') }}">Fazer login</a>

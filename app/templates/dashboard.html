@@ -6,14 +6,14 @@
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
 
-.chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; transition: border-color var(--transition), box-shadow var(--transition); }
-.chart-card:hover { border-color: var(--border-glow); box-shadow: var(--glow-blue); }
+.chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; transition: border-color var(--transition); }
+.chart-card:hover { border-color: #444c56; }
 .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .chart-title { font-size: 14px; font-weight: 700; }
 .chart-wrap { position: relative; height: 240px; }
 
 .dashboard-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-.dashboard-controls label { font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+.dashboard-controls label { font-size: 12px; color: var(--text-secondary); }
 .ctrl-select { padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 13px; }
 .ctrl-input { padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 13px; width: 70px; }
 .ctrl-btn { padding: 6px 14px; background: var(--accent-blue); color: #0d1117; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; cursor: pointer; transition: background var(--transition); }
@@ -24,7 +24,6 @@
 {% block content %}
 <div class="page-header">
   <h1 class="page-title">Dashboard</h1>
-  <p class="page-subtitle">Análise visual do mercado cripto</p>
 </div>
 
 <div class="dashboard-controls">
@@ -47,28 +46,28 @@
 <div class="charts-grid">
   <div class="chart-card">
     <div class="chart-header">
-      <span class="chart-title"><i class="fa-solid fa-chart-pie" style="color:var(--accent-blue);margin-right:6px"></i>Distribuição Market Cap</span>
+      <span class="chart-title"><i class="fa-solid fa-chart-pie" style="color:var(--accent-blue)"></i>Distribuição Market Cap</span>
     </div>
     <div class="chart-wrap"><canvas id="chart-mcap"></canvas></div>
   </div>
 
   <div class="chart-card">
     <div class="chart-header">
-      <span class="chart-title"><i class="fa-solid fa-chart-bar" style="color:var(--accent-purple);margin-right:6px"></i>Preços Atuais</span>
+      <span class="chart-title"><i class="fa-solid fa-chart-bar" style="color:var(--accent-purple)"></i>Preços Atuais</span>
     </div>
     <div class="chart-wrap"><canvas id="chart-prices"></canvas></div>
   </div>
 
   <div class="chart-card">
     <div class="chart-header">
-      <span class="chart-title"><i class="fa-solid fa-chart-line" style="color:var(--accent-green);margin-right:6px"></i>Variação 24h (%)</span>
+      <span class="chart-title"><i class="fa-solid fa-chart-line" style="color:var(--accent-green)"></i>Variação 24h (%)</span>
     </div>
     <div class="chart-wrap"><canvas id="chart-changes"></canvas></div>
   </div>
 
   <div class="chart-card">
     <div class="chart-header">
-      <span class="chart-title"><i class="fa-solid fa-circle-dot" style="color:var(--accent-yellow);margin-right:6px"></i>Volume vs Market Cap</span>
+      <span class="chart-title"><i class="fa-solid fa-circle-dot" style="color:var(--accent-yellow)"></i>Volume vs Market Cap</span>
     </div>
     <div class="chart-wrap"><canvas id="chart-scatter"></canvas></div>
   </div>

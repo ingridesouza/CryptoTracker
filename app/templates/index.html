@@ -53,8 +53,7 @@
 
 {% block content %}
 <div class="page-header">
-  <h1 class="page-title">Visão Geral do Mercado</h1>
-  <p class="page-subtitle">Dados em tempo real — atualizado automaticamente</p>
+  <h1 class="page-title">Mercado</h1>
 </div>
 
 <div class="market-layout">
@@ -103,7 +102,7 @@
 
     <!-- Converter -->
     <div class="card">
-      <div class="card-title"><i class="fa-solid fa-arrows-rotate" style="margin-right:5px"></i>Conversor em Tempo Real</div>
+      <div class="card-title"><i class="fa-solid fa-arrows-rotate"></i>Conversor</div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <input type="number" id="conv-amount" class="converter-input" value="1" min="0" step="any" placeholder="Quantidade">
         <div style="display:flex;gap:8px;align-items:flex-end">
@@ -138,7 +137,7 @@
 
     <!-- Fear & Greed -->
     <div class="card">
-      <div class="card-title"><i class="fa-solid fa-gauge-high" style="margin-right:5px"></i>Fear & Greed Index</div>
+      <div class="card-title"><i class="fa-solid fa-gauge-high"></i>Fear & Greed</div>
       <div style="text-align:center">
         <svg viewBox="0 0 120 70" width="150" style="margin:12px auto 4px;display:block">
           <path class="fg-arc fg-bg" d="M15,65 A50,50 0 0,1 105,65"/>
@@ -152,7 +151,7 @@
 
     <!-- Global Stats -->
     <div class="card">
-      <div class="card-title"><i class="fa-solid fa-globe" style="margin-right:5px"></i>Mercado Global</div>
+      <div class="card-title"><i class="fa-solid fa-globe"></i>Mercado Global</div>
       <div>
         <div class="global-row"><span class="global-row-label">Market Cap Total</span><span class="global-row-value" id="g-mcap">—</span></div>
         <div class="global-row"><span class="global-row-label">Volume 24h</span><span class="global-row-value" id="g-vol">—</span></div>
@@ -164,7 +163,7 @@
 
     <!-- Trending -->
     <div class="card">
-      <div class="card-title"><i class="fa-solid fa-fire" style="margin-right:5px;color:var(--accent-orange)"></i>Em Alta</div>
+      <div class="card-title"><i class="fa-solid fa-fire" style="color:var(--accent-yellow)"></i>Em Alta</div>
       <div id="trending-list"><p style="color:var(--text-muted);font-size:12px">Carregando...</p></div>
     </div>
 

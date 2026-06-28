@@ -13,10 +13,6 @@
 .holdings-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border); }
 .holdings-title { font-size: 15px; font-weight: 700; }
 
-.empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
-.empty-state-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.3; }
-.empty-state-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-.empty-state-sub { font-size: 13px; }
 
 /* Allocation chart */
 .alloc-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
@@ -30,11 +26,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-header flex justify-between items-center">
-  <div>
-    <h1 class="page-title">Portfolio</h1>
-    <p class="page-subtitle">Seus investimentos em cripto</p>
-  </div>
+<div class="page-header">
+  <h1 class="page-title">Portfolio</h1>
   <button class="btn btn-primary" id="add-holding-btn">
     <i class="fa-solid fa-plus"></i> Adicionar
   </button>
@@ -68,7 +61,7 @@
   <!-- Holdings table -->
   <div class="holdings-card">
     <div class="holdings-header">
-      <span class="holdings-title"><i class="fa-solid fa-briefcase" style="color:var(--accent-blue);margin-right:6px"></i>Minhas Posições</span>
+      <span class="card-title" style="margin-bottom:0"><i class="fa-solid fa-briefcase" style="color:var(--accent-blue)"></i>Posições</span>
     </div>
     <div class="table-wrap">
       <table class="data-table">
@@ -94,7 +87,7 @@
 
   <!-- Allocation chart -->
   <div class="card">
-    <div class="card-title"><i class="fa-solid fa-chart-pie" style="margin-right:5px"></i>Alocação</div>
+    <div class="card-title"><i class="fa-solid fa-chart-pie"></i>Alocação</div>
     <div class="alloc-wrap">
       <div class="alloc-chart-wrap">
         <canvas id="alloc-chart"></canvas>
