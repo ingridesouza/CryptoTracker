@@ -1,38 +1,198 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat de Investimentos</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="styles.css"> <!-- Arquivo CSS -->
-</head>
-<body>
-    <div id="chat-container">
-        <div id="chat-header">
-            <span data-translate="chat_title">Chat de Investimentos</span>
-            <div id="chat-controls">
-                <button id="minimize-btn"><i class="fas fa-minus"></i></button>
-                <button id="close-btn"><i class="fas fa-times"></i></button>
-            </div>
-        </div>
-        <div id="chat-box">
-            <div id="messages">
-                <div class="message bot-message" data-translate="chat_bot_message">Olá! Sou um especialista em investimentos. Como posso ajudar você hoje?</div>
-            </div>
-            <div id="loader" class="loader"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-        </div>
-        <div id="chat-input">
-            <input type="text" id="user-input" placeholder="Digite sua mensagem..." data-translate="chat_placeholder" />
-            <button id="send-btn">➤</button>
-        </div>
-    </div>
+<!-- Chat Widget — fragmento incluído em base.html -->
+<style>
+#chat-fab {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  color: #fff;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 500;
+  box-shadow: 0 4px 20px rgba(88,166,255,0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: none;
+}
+#chat-fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(88,166,255,0.55); }
 
-    <!-- Bolinha para reabrir o chat -->
-    <div id="chat-minimized">
-        <button id="open-chat-btn">💬</button>
-    </div>
+#chat-container {
+  position: fixed;
+  bottom: 92px;
+  right: 28px;
+  width: 360px;
+  max-height: 520px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+  display: none;
+  flex-direction: column;
+  z-index: 500;
+  overflow: hidden;
+}
+#chat-container.open { display: flex; }
 
-    <script src="script.js"></script> <!-- Arquivo JavaScript -->
-</body>
-</html>
+#chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.chat-header-info { display: flex; align-items: center; gap: 10px; }
+.chat-avatar {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #fff;
+}
+.chat-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.chat-subtitle { font-size: 11px; color: var(--accent-green); }
+.chat-header-btns { display: flex; gap: 4px; }
+.chat-header-btns button {
+  width: 28px; height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.15s, background 0.15s;
+  border: none; background: none; cursor: pointer;
+}
+.chat-header-btns button:hover { color: var(--text-primary); background: var(--bg-hover); }
+
+#chat-box {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+#chat-box::-webkit-scrollbar { width: 4px; }
+#chat-box::-webkit-scrollbar-track { background: transparent; }
+#chat-box::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.message {
+  max-width: 85%;
+  padding: 9px 13px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.bot-message {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  align-self: flex-start;
+  border-bottom-left-radius: 4px;
+}
+.user-message {
+  background: var(--accent-blue);
+  color: #fff;
+  align-self: flex-end;
+  border-bottom-right-radius: 4px;
+}
+
+#loader {
+  display: none;
+  align-self: flex-start;
+  padding: 8px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  border-bottom-left-radius: 4px;
+  gap: 5px;
+}
+#loader.visible { display: flex; }
+.dot {
+  width: 7px; height: 7px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  animation: dot-bounce 1.2s infinite ease-in-out;
+}
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+  40% { transform: translateY(-6px); opacity: 1; }
+}
+
+#chat-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#user-input {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+#user-input:focus { border-color: var(--accent-blue); }
+#send-btn {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  color: #fff;
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.15s;
+  border: none;
+}
+#send-btn:hover { background: #4090e0; transform: scale(1.05); }
+</style>
+
+<!-- Botão flutuante -->
+<button id="chat-fab" title="Assistente de Investimentos">
+  <i class="fa-solid fa-robot"></i>
+</button>
+
+<!-- Janela do chat -->
+<div id="chat-container">
+  <div id="chat-header">
+    <div class="chat-header-info">
+      <div class="chat-avatar"><i class="fa-solid fa-robot"></i></div>
+      <div>
+        <div class="chat-title">Assistente IA</div>
+        <div class="chat-subtitle">● Online</div>
+      </div>
+    </div>
+    <div class="chat-header-btns">
+      <button id="minimize-btn" title="Minimizar"><i class="fa-solid fa-minus"></i></button>
+      <button id="close-btn" title="Fechar"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+
+  <div id="chat-box">
+    <div id="messages">
+      <div class="message bot-message">Olá! Sou seu assistente de investimentos em cripto. Como posso ajudar você hoje?</div>
+    </div>
+    <div id="loader"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+  </div>
+
+  <div id="chat-input">
+    <input type="text" id="user-input" placeholder="Pergunte sobre cripto..." autocomplete="off">
+    <button id="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+  </div>
+</div>

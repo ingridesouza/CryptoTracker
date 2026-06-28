@@ -1,262 +1,177 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% block title %}Mercado — CryptoTracker{% endblock %}
 
-{% block styles %}
+{% block extra_css %}
 <style>
-    .analysis-card {
-        border-radius: 15px;
-        padding: 20px;
-        color: white;
-        margin-bottom: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        transition: transform 0.3s ease;
-    }
-    .analysis-card:hover {
-        transform: translateY(-5px);
-    }
-    .gain {
-        background: linear-gradient(135deg, #28a745, #218838);
-    }
-    .loss {
-        background: linear-gradient(135deg, #dc3545, #c82333);
-    }
-    .opportunity {
-        background: linear-gradient(135deg, #17a2b8, #138496);
-    }
-    .analysis-card h5 {
-        font-weight: bold;
-        font-size: 1.1rem;
-        border-bottom: 1px solid rgba(255,255,255,0.3);
-        padding-bottom: 10px;
-        margin-bottom: 10px;
-    }
-    .analysis-card p {
-        font-size: 1.2rem;
-        margin: 0;
-    }
+.market-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+@media (max-width: 1100px) { .market-layout { grid-template-columns: 1fr; } }
+
+.market-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.market-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+.market-header-title { font-size: 15px; font-weight: 700; }
+.market-controls { display: flex; align-items: center; gap: 8px; }
+.limit-select, .currency-select { padding: 5px 10px; border-radius: var(--radius-sm); font-size: 12px; background: var(--bg-hover); border: 1px solid var(--border); color: var(--text-primary); cursor: pointer; }
+
+.coin-row { cursor: pointer; transition: background var(--transition); }
+.coin-row:hover { background: var(--bg-hover); }
+.coin-rank { color: var(--text-muted); font-size: 12px; font-family: var(--font-mono); }
+.coin-info { display: flex; align-items: center; gap: 10px; min-width: 160px; }
+.coin-img { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; }
+.coin-name-text { font-weight: 600; font-size: 13px; }
+.coin-symbol { font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); }
+.coin-price { font-family: var(--font-mono); font-weight: 600; font-size: 13px; white-space: nowrap; }
+.coin-change { font-family: var(--font-mono); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.coin-mcap, .coin-volume { font-size: 12px; color: var(--text-secondary); font-family: var(--font-mono); white-space: nowrap; }
+
+.sidebar-panels { display: flex; flex-direction: column; gap: 16px; }
+
+.fg-value-text { text-anchor: middle; font-family: var(--font-mono); font-size: 22px; font-weight: 700; fill: var(--text-primary); }
+.fg-arc { fill: none; stroke-width: 12; stroke-linecap: round; }
+.fg-bg { stroke: var(--border); }
+
+.global-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: 12px; }
+.global-row:last-child { border-bottom: none; }
+.global-row-label { color: var(--text-secondary); }
+.global-row-value { font-family: var(--font-mono); font-weight: 600; }
+
+.trending-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-light); }
+.trending-item:last-child { border-bottom: none; }
+.trending-thumb { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; }
+.trending-name { font-size: 13px; font-weight: 600; flex: 1; }
+.trending-symbol { font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); }
+.trending-rank { font-size: 11px; color: var(--text-muted); background: var(--bg-hover); padding: 2px 6px; border-radius: var(--radius-full); }
+
+.converter-input { flex: 1; padding: 10px 12px; font-size: 18px; font-family: var(--font-mono); font-weight: 600; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); width: 100%; }
+.converter-select { padding: 10px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 13px; font-weight: 600; width: 100%; }
+.converter-swap { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-hover); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-secondary); cursor: pointer; transition: all var(--transition); flex-shrink: 0; align-self: flex-end; }
+.converter-swap:hover { background: rgba(88,166,255,0.1); border-color: var(--accent-blue); color: var(--accent-blue); }
+.converter-result { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; min-height: 56px; margin-top: 4px; }
+.converter-result-val { font-size: 22px; font-family: var(--font-mono); font-weight: 700; }
+.converter-result-empty { color: var(--text-muted); font-size: 13px; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <!-- Seção de Análise de Mercado -->
-    <div class="row mb-5">
-        <div class="col-12 text-center">
-            <h2>Análise de Mercado em Tempo Real</h2>
-            <p class="text-muted">Insights rápidos sobre as principais movimentações.</p>
-        </div>
-        <div class="col-md-4">
-            <div class="analysis-card gain">
-                <h5>Maior Alta (24h)</h5>
-                <p id="highest-gain">Aguardando dados...</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="analysis-card loss">
-                <h5>Maior Baixa (24h)</h5>
-                <p id="lowest-loss">Aguardando dados...</p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="analysis-card opportunity">
-                <h5>Oportunidade de Compra</h5>
-                <p id="buy-opportunity">Aguardando dados...</p>
-            </div>
-        </div>
-        <div class="col-12 text-center mt-3">
-            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary">Ver Dashboard Completo &raquo;</a>
-        </div>
-    </div>
+<div class="page-header">
+  <h1 class="page-title">Visão Geral do Mercado</h1>
+  <p class="page-subtitle">Dados em tempo real — atualizado automaticamente</p>
 </div>
 
-    <div class="dashboard">
-        <!-- O conteúdo original do dashboard começa aqui -->
-        <section class="market-analysis">
-            <h2 data-translate="market_analysis">Análise de Mercado</h2>
-            <div id="notifications">
-                <!-- As notificações serão preenchidas pelo script.js -->
-            </div>
-        </section>
-
-        <!-- Lista de Criptomoedas -->
-        <section class="crypto-list">
-            <h2 data-translate="top_cryptos">Top Criptomoedas</h2>
-            <table id="crypto-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th data-translate="name">Nome</th>
-                        <th data-translate="price">Preço</th>
-                        <th data-translate="market_cap">Capitalização</th>
-                        <th data-translate="volume_24h">Volume (24h)</th>
-                        <th data-translate="change_24h">Variação (24h)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- As linhas serão preenchidas pelo script.js -->
-                </tbody>
-            </table>
-        </section>
-
-        <!-- Conversor de Moedas -->
-        <section class="converter">
-            <div class="converter-header">
-                <h2 data-translate="converter">Conversor de Moedas</h2>
-                <button id="converter-history-btn" class="history-btn" aria-label="Histórico de conversões">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                    </svg>
-                </button>
-            </div>
-            
-            <div class="converter-body">
-                <form id="converter-form">
-                    <div class="input-group">
-                        <label for="amount" data-translate="amount">Quantidade</label>
-                        <div class="input-wrapper">
-                            <input type="number" id="amount" step="0.01" required placeholder="0.00" inputmode="decimal">
-                            <button type="button" id="clear-amount" class="clear-btn" aria-label="Limpar valor">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-        
-                    <div class="currency-selectors">
-                        <div class="select-group">
-                            <label for="from" data-translate="from">De</label>
-                            <div class="select-wrapper">
-                                <select id="from" required>
-                                    <!-- Opções preenchidas via JS -->
-                                </select>
-                                <div class="select-arrow"></div>
-                            </div>
-                        </div>
-        
-                        <button type="button" id="swap-currencies" class="swap-btn" aria-label="Inverter moedas">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="17 1 21 5 17 9"></polyline>
-                                <path d="M3 11V9a4 4 0 0 1 4-4h14"></path>
-                                <polyline points="7 23 3 19 7 15"></polyline>
-                                <path d="M21 13v2a4 4 0 0 1-4 4H3"></path>
-                            </svg>
-                        </button>
-        
-                        <div class="select-group">
-                            <label for="to" data-translate="to">Para</label>
-                            <div class="select-wrapper">
-                                <select id="to" required>
-                                    <option value="usd">USD - Dólar Americano</option>
-                                    <option value="brl">BRL - Real Brasileiro</option>
-                                    <option value="eur">EUR - Euro</option>
-                                </select>
-                                <div class="select-arrow"></div>
-                            </div>
-                        </div>
-                    </div>
-        
-                    <div class="form-actions">
-                        <button type="submit" class="convert-btn">
-                            <span class="btn-text">Converter</span>
-                            <span class="btn-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                    <polyline points="19 12 12 19 5 12"></polyline>
-                                </svg>
-                            </span>
-                        </button>
-                    </div>
-                </form>
-        
-                <div id="result" class="result-container" aria-live="polite">
-                    <div class="result-main">
-                        <div class="result-value">0.00</div>
-                        <div class="result-currency">USD</div>
-                    </div>
-                    <div class="result-details">
-                        <div class="rate-info">
-                            <span class="rate-label">Taxa:</span>
-                            <span class="rate-value">1 USD = 5.00 BRL</span>
-                        </div>
-                        <div class="last-updated">
-                            <span class="updated-label">Atualizado:</span>
-                            <span class="updated-value">há 2 minutos</span>
-                        </div>
-                    </div>
-                    <button id="copy-result" class="copy-btn" aria-label="Copiar resultado">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
-                        <span>Copiar</span>
-                    </button>
-                </div>
-            </div>
-        
-            <div id="conversion-history" class="history-panel">
-                <div class="history-header">
-                    <h3>Histórico de Conversões</h3>
-                    <button id="close-history" class="close-btn" aria-label="Fechar histórico">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                    </button>
-                </div>
-                <div class="history-list">
-                    <!-- Histórico será preenchido via JavaScript -->
-                </div>
-            </div>
-        </section>
+<div class="market-layout">
+  <!-- Market table -->
+  <div class="market-card">
+    <div class="market-header">
+      <span class="market-header-title"><i class="fa-solid fa-chart-simple" style="color:var(--accent-blue);margin-right:6px"></i>Top Criptomoedas</span>
+      <div class="market-controls">
+        <select class="limit-select" id="market-limit">
+          <option value="10">Top 10</option>
+          <option value="20" selected>Top 20</option>
+          <option value="50">Top 50</option>
+          <option value="100">Top 100</option>
+        </select>
+        <select class="currency-select" id="market-currency">
+          <option value="usd">USD</option>
+          <option value="brl">BRL</option>
+          <option value="eur">EUR</option>
+        </select>
+      </div>
     </div>
+    <div class="table-wrap">
+      <table class="data-table" id="market-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Moeda</th>
+            <th>Preço</th>
+            <th>1h %</th>
+            <th>24h %</th>
+            <th>7d %</th>
+            <th class="hide-mobile">Market Cap</th>
+            <th class="hide-mobile">Volume 24h</th>
+            <th class="hide-mobile">7d</th>
+          </tr>
+        </thead>
+        <tbody id="market-tbody">
+          <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Sidebar panels -->
+  <div class="sidebar-panels">
+
+    <!-- Converter -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-arrows-rotate" style="margin-right:5px"></i>Conversor em Tempo Real</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <input type="number" id="conv-amount" class="converter-input" value="1" min="0" step="any" placeholder="Quantidade">
+        <div style="display:flex;gap:8px;align-items:flex-end">
+          <div style="flex:1">
+            <label class="form-label">De</label>
+            <select id="conv-from" class="converter-select">
+              <option value="bitcoin">Bitcoin (BTC)</option>
+              <option value="ethereum">Ethereum (ETH)</option>
+              <option value="solana">Solana (SOL)</option>
+              <option value="cardano">Cardano (ADA)</option>
+              <option value="binancecoin">BNB</option>
+            </select>
+          </div>
+          <button class="converter-swap" id="conv-swap" title="Inverter"><i class="fa-solid fa-right-left"></i></button>
+          <div style="flex:1">
+            <label class="form-label">Para</label>
+            <select id="conv-to" class="converter-select">
+              <option value="usd">USD ($)</option>
+              <option value="brl">BRL (R$)</option>
+              <option value="eur">EUR (€)</option>
+              <option value="btc">BTC</option>
+              <option value="eth">ETH</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary w-full" id="conv-btn"><i class="fa-solid fa-calculator"></i> Converter</button>
+        <div class="converter-result" id="conv-result">
+          <span class="converter-result-empty">Digite um valor e clique em Converter</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fear & Greed -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-gauge-high" style="margin-right:5px"></i>Fear & Greed Index</div>
+      <div style="text-align:center">
+        <svg viewBox="0 0 120 70" width="150" style="margin:12px auto 4px;display:block">
+          <path class="fg-arc fg-bg" d="M15,65 A50,50 0 0,1 105,65"/>
+          <path class="fg-arc" id="fg-arc-fill" d="M15,65 A50,50 0 0,1 105,65" stroke="var(--accent-yellow)" stroke-dasharray="0 157"/>
+          <text class="fg-value-text" id="fg-value" x="60" y="62">—</text>
+        </svg>
+        <div style="font-size:14px;font-weight:700;margin-bottom:2px" id="fg-label">Carregando...</div>
+        <div style="font-size:11px;color:var(--text-muted)">0 = Medo · 100 = Ganância</div>
+      </div>
+    </div>
+
+    <!-- Global Stats -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-globe" style="margin-right:5px"></i>Mercado Global</div>
+      <div>
+        <div class="global-row"><span class="global-row-label">Market Cap Total</span><span class="global-row-value" id="g-mcap">—</span></div>
+        <div class="global-row"><span class="global-row-label">Volume 24h</span><span class="global-row-value" id="g-vol">—</span></div>
+        <div class="global-row"><span class="global-row-label">Dominância BTC</span><span class="global-row-value" id="g-btc">—</span></div>
+        <div class="global-row"><span class="global-row-label">Dominância ETH</span><span class="global-row-value" id="g-eth">—</span></div>
+        <div class="global-row"><span class="global-row-label">Variação 24h</span><span class="global-row-value" id="g-change">—</span></div>
+      </div>
+    </div>
+
+    <!-- Trending -->
+    <div class="card">
+      <div class="card-title"><i class="fa-solid fa-fire" style="margin-right:5px;color:var(--accent-orange)"></i>Em Alta</div>
+      <div id="trending-list"><p style="color:var(--text-muted);font-size:12px">Carregando...</p></div>
+    </div>
+
+  </div>
+</div>
 {% endblock %}
 
-{% block scripts %}
-<script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const socket = io();
-
-    socket.on('connect', function() {
-        console.log('Conectado ao servidor Socket.IO!');
-    });
-
-    socket.on('market_summary_update', function(data) {
-        console.log('Análise recebida:', data);
-        const gainElement = document.getElementById('highest-gain');
-        const lossElement = document.getElementById('lowest-loss');
-        const opportunityElement = document.getElementById('buy-opportunity');
-
-        if (data.highest_gain && data.highest_gain.name) {
-            gainElement.innerHTML = `<strong>${data.highest_gain.name}</strong>: <span style="color: #d4edda;">${data.highest_gain.change}</span>`;
-        } else {
-            gainElement.textContent = 'N/A';
-        }
-
-        if (data.lowest_loss && data.lowest_loss.name) {
-            lossElement.innerHTML = `<strong>${data.lowest_loss.name}</strong>: <span style="color: #f8d7da;">${data.lowest_loss.change}</span>`;
-        } else {
-            lossElement.textContent = 'N/A';
-        }
-
-        if (data.buy_opportunity && data.buy_opportunity.name) {
-            opportunityElement.innerHTML = `<strong>${data.buy_opportunity.name}</strong><br><small>${data.buy_opportunity.reason}</small>`;
-        } else {
-            opportunityElement.textContent = 'Nenhuma oportunidade clara.';
-        }
-    });
-
-    // Mantém os scripts originais
-    const originalScripts = [
-        "{{ url_for('static', filename='js/script.js') }}",
-        "{{ url_for('static', filename='js/conversor.js') }}"
-    ];
-    originalScripts.forEach(src => {
-        const script = document.createElement('script');
-        script.src = src;
-        document.body.appendChild(script);
-    });
-});
-</script>
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/market.js') }}"></script>
 {% endblock %}

@@ -1,240 +1,80 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% block title %}Dashboard — CryptoTracker{% endblock %}
 
-{% block head %}
-{{ super() }}
-<script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+{% block extra_css %}
 <style>
-    #notifications {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        width: 300px;
-        z-index: 1000;
-    }
-    .toast {
-        background-color: #333;
-        color: #fff;
-        padding: 15px;
-        margin-bottom: 10px;
-        border-radius: 5px;
-        opacity: 0.9;
-    }
+.charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+
+.chart-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; transition: border-color var(--transition), box-shadow var(--transition); }
+.chart-card:hover { border-color: var(--border-glow); box-shadow: var(--glow-blue); }
+.chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.chart-title { font-size: 14px; font-weight: 700; }
+.chart-wrap { position: relative; height: 240px; }
+
+.dashboard-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.dashboard-controls label { font-size: 12px; color: var(--text-secondary); font-weight: 600; }
+.ctrl-select { padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 13px; }
+.ctrl-input { padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 13px; width: 70px; }
+.ctrl-btn { padding: 6px 14px; background: var(--accent-blue); color: #0d1117; border: none; border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; cursor: pointer; transition: background var(--transition); }
+.ctrl-btn:hover { background: #79b8ff; }
 </style>
 {% endblock %}
 
-{% block title %}Dashboard - CryptoTracker{% endblock %}
-
 {% block content %}
-<div id="notifications"></div>
-<!-- Header do Dashboard (fora do container) -->
-<div class="dashboard-header">
-    <h1>CryptoTracker Dashboard</h1>
-    <p class="dashboard-description">
-        Explore gráficos detalhados, acompanhe tendências de mercado e monitore o desempenho das principais criptomoedas. Tudo em um só lugar, projetado para investidores como você.
-    </p>
+<div class="page-header">
+  <h1 class="page-title">Dashboard</h1>
+  <p class="page-subtitle">Análise visual do mercado cripto</p>
 </div>
 
-<!-- Filtro Dinâmico -->
-<div class="settings-container" style="margin-bottom:20px;">
-    <label for="currencySelect">Moeda:</label>
-    <select id="currencySelect">
-        <option value="usd">USD</option>
-        <option value="brl">BRL</option>
-        <option value="eur">EUR</option>
+<div class="dashboard-controls">
+  <div style="display:flex;align-items:center;gap:6px">
+    <label>Moeda:</label>
+    <select class="ctrl-select" id="dash-currency">
+      <option value="usd">USD</option>
+      <option value="brl">BRL</option>
+      <option value="eur">EUR</option>
     </select>
-    <label for="limitSelect">Quantidade:</label>
-    <input type="number" id="limitSelect" value="20" min="5" max="100" step="5" style="width:80px;" />
-    <button id="applySettingsBtn">Aplicar</button>
-</div>
-<!-- Filtro Dinâmico -->
-<div class="filter-container">
-    <label for="cryptoFilter">Filtrar por Criptomoeda:</label>
-    <select id="cryptoFilter">
-        <option value="all">Todas</option>
-        <option value="Bitcoin">Bitcoin</option>
-        <option value="Ethereum">Ethereum</option>
-        <option value="Binance Coin">Binance Coin</option>
-        <!-- Adicione mais opções conforme necessário -->
-    </select>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px">
+    <label>Top:</label>
+    <input type="number" class="ctrl-input" id="dash-limit" value="20" min="5" max="100">
+  </div>
+  <button class="ctrl-btn" id="dash-apply"><i class="fa-solid fa-rotate"></i> Atualizar</button>
+  <div id="dash-status" style="font-size:12px;color:var(--text-muted)"></div>
 </div>
 
-<!-- Grade de Gráficos -->
-<div class="dashboard-grid">
-    <!-- Gráfico de Pizza (Market Cap) -->
-    <div class="chart-container">
-        <h2 data-translate="market_cap_distribution">Distribuição de Market Cap</h2>
-        <canvas id="marketCapChart"></canvas>
+<div class="charts-grid">
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title"><i class="fa-solid fa-chart-pie" style="color:var(--accent-blue);margin-right:6px"></i>Distribuição Market Cap</span>
     </div>
+    <div class="chart-wrap"><canvas id="chart-mcap"></canvas></div>
+  </div>
 
-    <!-- Gráfico de Barras (Preço das Criptomoedas) -->
-    <div class="chart-container">
-        <h2 data-translate="crypto_prices">Preço das Criptomoedas</h2>
-        <canvas id="priceChart"></canvas>
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title"><i class="fa-solid fa-chart-bar" style="color:var(--accent-purple);margin-right:6px"></i>Preços Atuais</span>
     </div>
+    <div class="chart-wrap"><canvas id="chart-prices"></canvas></div>
+  </div>
 
-    <!-- Gráfico de Linhas (Variação de Preço em 24h) -->
-    <div class="chart-container">
-        <h2 data-translate="price_change_24h">Variação de Preço em 24h</h2>
-        <canvas id="priceChangeChart"></canvas>
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title"><i class="fa-solid fa-chart-line" style="color:var(--accent-green);margin-right:6px"></i>Variação 24h (%)</span>
     </div>
+    <div class="chart-wrap"><canvas id="chart-changes"></canvas></div>
+  </div>
 
-    <!-- Gráfico de Dispersão (Volume vs. Market Cap) -->
-    <div class="chart-container">
-        <h2 data-translate="volume_vs_market_cap">Volume vs. Market Cap</h2>
-        <canvas id="volumeMarketCapChart"></canvas>
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-title"><i class="fa-solid fa-circle-dot" style="color:var(--accent-yellow);margin-right:6px"></i>Volume vs Market Cap</span>
     </div>
+    <div class="chart-wrap"><canvas id="chart-scatter"></canvas></div>
+  </div>
 </div>
-
-<!-- Spinner de Carregamento -->
-<div id="loading-spinner" class="spinner"></div>
 {% endblock %}
 
-{% block scripts %}
-<script>
-    document.addEventListener('DOMContentLoaded', (event) => {
-        // --- Lógica do Socket.IO para notificações ---
-        const socket = io();
-
-        socket.on('connect', () => {
-            console.log('Conectado ao servidor Socket.IO!');
-        });
-
-        socket.on('analysis_update', function(data) {
-            console.log('Nova análise de mercado recebida:', data);
-            const recommendations = data.recommendations;
-            const notificationsDiv = document.getElementById('notifications');
-
-            if (recommendations) {
-                recommendations.forEach(rec => {
-                    const toast = document.createElement('div');
-                    toast.className = 'toast';
-                    let emoji = rec.action === 'buy' ? '🚀' : (rec.action === 'sell' ? '📉' : ' HOLD ');
-                    toast.innerHTML = `<strong>${emoji} ${rec.action.toUpperCase()} ${rec.name}</strong><br>${rec.reason} (Preço: $${rec.price.toFixed(2)})`;
-                    notificationsDiv.appendChild(toast);
-
-                    setTimeout(() => {
-                        toast.remove();
-                    }, 8000); // Notificação desaparece em 8 segundos
-                });
-            }
-        });
-
-        // --- Lógica original dos gráficos do Dashboard ---
-        let marketCapChartInstance = null;
-        let priceChartInstance = null;
-        let priceChangeChartInstance = null;
-        let volumeMarketCapChartInstance = null;
-
-        function destroyCharts() {
-            if (marketCapChartInstance) marketCapChartInstance.destroy();
-            if (priceChartInstance) priceChartInstance.destroy();
-            if (priceChangeChartInstance) priceChangeChartInstance.destroy();
-            if (volumeMarketCapChartInstance) volumeMarketCapChartInstance.destroy();
-        }
-
-        async function loadCryptoData() {
-            try {
-                const currency = document.getElementById('currencySelect').value;
-                const limit = document.getElementById('limitSelect').value;
-                const response = await fetch(`/get-top-cryptos?currency=${currency}&limit=${limit}`);
-                const data = await response.json();
-                renderCharts(data);
-                return data;
-            } catch (error) {
-                console.error('Erro ao carregar dados:', error);
-            } finally {
-                document.getElementById('loading-spinner').style.display = 'none';
-            }
-        }
-
-        function applyFilter(cryptos) {
-            const selectedCrypto = document.getElementById('cryptoFilter').value;
-            const filteredData = selectedCrypto === 'all' ? cryptos : cryptos.filter(crypto => crypto.name === selectedCrypto);
-            renderCharts(filteredData);
-        }
-
-        function calculateMovingAverage(data, windowSize) {
-            return data.map((val, idx, arr) => {
-                const start = Math.max(0, idx - windowSize + 1);
-                const end = idx + 1;
-                const subset = arr.slice(start, end);
-                const sum = subset.reduce((a, b) => a + b, 0);
-                return sum / subset.length;
-            });
-        }
-
-        function renderCharts(cryptos) {
-            if (!cryptos || cryptos.length === 0) return;
-            destroyCharts();
-
-            const labels = cryptos.map(crypto => crypto.name);
-            const marketCaps = cryptos.map(crypto => crypto.market_cap);
-            const prices = cryptos.map(crypto => crypto.current_price);
-            const priceChanges = cryptos.map(crypto => crypto.price_change_percentage_24h);
-            const volumes = cryptos.map(crypto => crypto.total_volume);
-
-            marketCapChartInstance = new Chart(document.getElementById('marketCapChart'), {
-                type: 'pie',
-                data: { labels: labels, datasets: [{ data: marketCaps, backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'] }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-            });
-
-            const currencyLabel = document.getElementById('currencySelect').value.toUpperCase();
-            priceChartInstance = new Chart(document.getElementById('priceChart'), {
-                type: 'bar',
-                data: { labels: labels, datasets: [{ label: `Preço (${currencyLabel})`, data: prices, backgroundColor: '#36A2EB' }] },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
-            });
-
-            const movingAverages = calculateMovingAverage(priceChanges, 7);
-            priceChangeChartInstance = new Chart(document.getElementById('priceChangeChart'), {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'Variação (%)', data: priceChanges, borderColor: '#FF6384', fill: false },
-                        { label: 'Média Móvel (7 dias)', data: movingAverages, borderColor: '#36A2EB', fill: false }
-                    ]
-                },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
-
-            volumeMarketCapChartInstance = new Chart(document.getElementById('volumeMarketCapChart'), {
-                type: 'scatter',
-                data: {
-                    datasets: [{
-                        label: 'Volume vs. Market Cap',
-                        data: cryptos.map(crypto => ({ x: crypto.market_cap, y: crypto.total_volume })),
-                        backgroundColor: '#FFCE56'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Market Cap' } },
-                        y: { title: { display: true, text: 'Volume' } }
-                    }
-                }
-            });
-        }
-
-        let initialCryptos = [];
-        // Carrega dados iniciais e configura listeners
-        loadCryptoData().then(data => {
-            if (data) {
-                initialCryptos = data;
-                document.getElementById('cryptoFilter').addEventListener('change', () => applyFilter(initialCryptos));
-                // Listener para aplicar novas configurações
-                document.getElementById('applySettingsBtn').addEventListener('click', () => {
-                    document.getElementById('loading-spinner').style.display = 'block';
-                    loadCryptoData().then(data => {
-                        initialCryptos = data;
-                        applyFilter(initialCryptos);
-                    });
-                });
-            }
-        });
-    });
-</script>
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

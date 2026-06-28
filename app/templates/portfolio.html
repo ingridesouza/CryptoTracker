@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% block title %}Portfolio — CryptoTracker{% endblock %}
+
+{% block extra_css %}
+<style>
+.portfolio-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+@media (max-width: 1000px) { .portfolio-grid { grid-template-columns: 1fr; } }
+
+.summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+@media (max-width: 800px) { .summary-cards { grid-template-columns: 1fr 1fr; } }
+
+.holdings-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+.holdings-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+.holdings-title { font-size: 15px; font-weight: 700; }
+
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+.empty-state-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.3; }
+.empty-state-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.empty-state-sub { font-size: 13px; }
+
+/* Allocation chart */
+.alloc-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.alloc-chart-wrap { position: relative; width: 180px; height: 180px; }
+.alloc-legend { width: 100%; }
+.alloc-legend-item { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; font-size: 12px; }
+.alloc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-right: 6px; }
+.alloc-name { flex: 1; color: var(--text-secondary); }
+.alloc-pct { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header flex justify-between items-center">
+  <div>
+    <h1 class="page-title">Portfolio</h1>
+    <p class="page-subtitle">Seus investimentos em cripto</p>
+  </div>
+  <button class="btn btn-primary" id="add-holding-btn">
+    <i class="fa-solid fa-plus"></i> Adicionar
+  </button>
+</div>
+
+<!-- Summary cards -->
+<div class="summary-cards">
+  <div class="stat-card">
+    <div class="stat-label">Valor Total</div>
+    <div class="stat-value" id="p-total-value">—</div>
+    <div class="stat-sub" id="p-total-cost">Investido: —</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Lucro / Perda</div>
+    <div class="stat-value" id="p-total-pnl">—</div>
+    <div class="stat-sub" id="p-total-pnl-pct">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Melhor Ativo</div>
+    <div class="stat-value" id="p-best">—</div>
+    <div class="stat-sub" id="p-best-sub">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Qtd. de Ativos</div>
+    <div class="stat-value" id="p-count">0</div>
+    <div class="stat-sub">posições abertas</div>
+  </div>
+</div>
+
+<div class="portfolio-grid">
+  <!-- Holdings table -->
+  <div class="holdings-card">
+    <div class="holdings-header">
+      <span class="holdings-title"><i class="fa-solid fa-briefcase" style="color:var(--accent-blue);margin-right:6px"></i>Minhas Posições</span>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Moeda</th>
+            <th>Quantidade</th>
+            <th>Preço Compra</th>
+            <th>Preço Atual</th>
+            <th>Custo</th>
+            <th>Valor</th>
+            <th>P&L</th>
+            <th>P&L %</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="holdings-tbody">
+          <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Allocation chart -->
+  <div class="card">
+    <div class="card-title"><i class="fa-solid fa-chart-pie" style="margin-right:5px"></i>Alocação</div>
+    <div class="alloc-wrap">
+      <div class="alloc-chart-wrap">
+        <canvas id="alloc-chart"></canvas>
+      </div>
+      <div class="alloc-legend" id="alloc-legend"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add holding modal -->
+<div class="modal-backdrop" id="add-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title"><i class="fa-solid fa-plus-circle" style="color:var(--accent-blue);margin-right:6px"></i>Adicionar ao Portfolio</span>
+      <button class="modal-close btn-icon" id="close-modal"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">ID da Moeda (CoinGecko)</label>
+        <input type="text" id="h-crypto-id" class="form-input" placeholder="ex: bitcoin, ethereum, solana">
+        <div class="form-hint">Use o ID exato da CoinGecko (em minúsculas)</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nome da Moeda</label>
+        <input type="text" id="h-crypto-name" class="form-input" placeholder="ex: Bitcoin">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quantidade</label>
+        <input type="number" id="h-amount" class="form-input" placeholder="0.5" min="0" step="any">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Preço de Compra (USD)</label>
+        <input type="number" id="h-purchase-price" class="form-input" placeholder="45000" min="0" step="any">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data de Compra (opcional)</label>
+        <input type="date" id="h-date" class="form-input">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="cancel-modal">Cancelar</button>
+      <button class="btn btn-primary" id="save-holding"><i class="fa-solid fa-check"></i> Salvar</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/portfolio.js') }}"></script>
+{% endblock %}
