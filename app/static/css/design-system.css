@@ -3,16 +3,16 @@
    ============================================================ */
 
 :root {
-  /* Backgrounds */
-  --bg-primary:   #0d1117;
-  --bg-secondary: #161b22;
-  --bg-card:      #1c2128;
-  --bg-hover:     #21262d;
-  --bg-input:     #0d1117;
+  /* Backgrounds — neutros puros, sem tinting azulado */
+  --bg-primary:   #000000;
+  --bg-secondary: #111111;
+  --bg-card:      #1a1a1a;
+  --bg-hover:     #222222;
+  --bg-input:     #0a0a0a;
 
   /* Borders */
-  --border:       #30363d;
-  --border-light: #21262d;
+  --border:       #2e2e2e;
+  --border-light: #222222;
   --border-focus: rgba(88, 166, 255, 0.5);
 
   /* Text */
@@ -102,7 +102,7 @@ ul { list-style: none; }
   padding: 20px;
   transition: border-color var(--transition);
 }
-.card:hover { border-color: #444c56; }
+.card:hover { border-color: #333333; }
 
 /* Label de seção — sem uppercase, peso normal */
 .section-label {
@@ -155,7 +155,7 @@ ul { list-style: none; }
   padding: 20px;
   transition: border-color var(--transition);
 }
-.stat-card:hover { border-color: #444c56; }
+.stat-card:hover { border-color: #333333; }
 .stat-label {
   font-size: 11px;
   color: var(--text-muted);
