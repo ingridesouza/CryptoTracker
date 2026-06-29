@@ -32,3 +32,8 @@ def coin_detail(crypto_id):
 @login_required
 def alerts():
     return render_template('alerts.html')
+
+@main_bp.route('/tax')
+@login_required
+def tax():
+    return render_template('tax.html')

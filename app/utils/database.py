@@ -97,6 +97,25 @@ def initialize_database():
     ''')
 
     c.execute('''
+        CREATE TABLE IF NOT EXISTS tax_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            year INTEGER NOT NULL,
+            month INTEGER NOT NULL,
+            total_sold_brl REAL DEFAULT 0,
+            total_cost_brl REAL DEFAULT 0,
+            gross_gain_brl REAL DEFAULT 0,
+            tax_due_brl REAL DEFAULT 0,
+            tax_rate REAL DEFAULT 0,
+            status TEXT DEFAULT 'pending',
+            darf_due_date TEXT,
+            paid_at DATETIME,
+            UNIQUE(user_id, year, month),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+
+    c.execute('''
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL,

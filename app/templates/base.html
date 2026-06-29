@@ -54,6 +54,10 @@
           <i class="fa-solid fa-briefcase nav-icon"></i>
           <span class="nav-label">Portfolio</span>
         </a>
+        <a href="{{ url_for('main.tax') }}" class="nav-item {% if request.endpoint == 'main.tax' %}active{% endif %}">
+          <i class="fa-solid fa-file-invoice-dollar nav-icon"></i>
+          <span class="nav-label">IR</span>
+        </a>
         <a href="{{ url_for('main.alerts') }}" class="nav-item {% if request.endpoint == 'main.alerts' %}active{% endif %}">
           <i class="fa-solid fa-bell nav-icon"></i>
           <span class="nav-label">Alertas</span>
