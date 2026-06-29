@@ -73,6 +73,7 @@ def create_app():
     from app.routes.portfolio_routes import portfolio_bp
     from app.routes.alert_routes import alert_bp
     from app.routes.tax_routes import tax_bp
+    from app.routes.exchange_routes import exchange_bp
 
     app.register_blueprint(main_bp)
     app.register_blueprint(crypto_bp)
@@ -82,6 +83,7 @@ def create_app():
     app.register_blueprint(portfolio_bp)
     app.register_blueprint(alert_bp)
     app.register_blueprint(tax_bp)
+    app.register_blueprint(exchange_bp)
 
     @app.context_processor
     def inject_globals():

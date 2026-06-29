@@ -37,3 +37,8 @@ def alerts():
 @login_required
 def tax():
     return render_template('tax.html')
+
+@main_bp.route('/exchanges')
+@login_required
+def exchanges():
+    return render_template('exchanges.html')

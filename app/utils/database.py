@@ -134,5 +134,26 @@ def initialize_database():
         )
     ''')
 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS exchange_keys (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            exchange TEXT NOT NULL,
+            label TEXT NOT NULL,
+            api_key_enc TEXT NOT NULL,
+            api_secret_enc TEXT DEFAULT '',
+            last_sync_at TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+
+    # Adicionar colunas de exchange nas transações (sem falhar se já existirem)
+    for col, definition in [('exchange', 'TEXT'), ('exchange_tx_id', 'TEXT')]:
+        try:
+            c.execute(f'ALTER TABLE transactions ADD COLUMN {col} {definition}')
+        except Exception:
+            pass  # coluna já existe
+
     conn.commit()
     conn.close()
