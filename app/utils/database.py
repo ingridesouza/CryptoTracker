@@ -96,5 +96,24 @@ def initialize_database():
         )
     ''')
 
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            crypto_id TEXT NOT NULL,
+            crypto_name TEXT NOT NULL,
+            crypto_symbol TEXT NOT NULL,
+            type TEXT NOT NULL CHECK(type IN ('buy', 'sell')),
+            quantity REAL NOT NULL,
+            price_brl REAL NOT NULL,
+            price_usd REAL,
+            usd_brl_rate REAL NOT NULL,
+            date TEXT NOT NULL,
+            notes TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+
     conn.commit()
     conn.close()

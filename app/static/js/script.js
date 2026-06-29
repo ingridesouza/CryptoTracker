@@ -102,6 +102,24 @@ async function loadTickerNow() {
 
 document.addEventListener('DOMContentLoaded', loadTickerNow);
 
+/* ── Currency toggle global ──────────────────────────────────── */
+(function initCurrencyToggle() {
+  const toggle = document.getElementById('currency-toggle');
+  if (!toggle) return;
+  const saved = localStorage.getItem('ct-currency') || 'brl';
+  toggle.querySelectorAll('.cur-opt').forEach(el => {
+    el.classList.toggle('active', el.dataset.cur === saved);
+  });
+  toggle.addEventListener('click', e => {
+    const opt = e.target.closest('.cur-opt');
+    if (!opt) return;
+    const cur = opt.dataset.cur;
+    localStorage.setItem('ct-currency', cur);
+    toggle.querySelectorAll('.cur-opt').forEach(el => el.classList.toggle('active', el.dataset.cur === cur));
+    window.dispatchEvent(new CustomEvent('ct-currency-change', { detail: cur }));
+  });
+})();
+
 /* ── Alert badge & real-time alert toasts ────────────────── */
 socket.on('alert_triggered', (data) => {
   const condition = data.condition === 'above' ? 'acima de' : 'abaixo de';

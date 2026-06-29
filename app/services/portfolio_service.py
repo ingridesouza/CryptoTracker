@@ -1,6 +1,74 @@
 from app.utils.database import get_db_connection
 from app.services.coingecko_service import get_current_prices
 
+# ── Transaction-based portfolio (Fase 1) ─────────────────────
+
+def get_transactions(user_id):
+    conn = get_db_connection()
+    rows = conn.execute(
+        'SELECT * FROM transactions WHERE user_id = ? ORDER BY date DESC, created_at DESC',
+        (user_id,)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def add_transaction(user_id, crypto_id, crypto_name, crypto_symbol,
+                    tx_type, quantity, price_brl, price_usd, usd_brl_rate, date, notes=''):
+    conn = get_db_connection()
+    conn.execute(
+        '''INSERT INTO transactions
+           (user_id, crypto_id, crypto_name, crypto_symbol, type,
+            quantity, price_brl, price_usd, usd_brl_rate, date, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        (user_id, crypto_id, crypto_name, crypto_symbol, tx_type,
+         quantity, price_brl, price_usd, usd_brl_rate, date, notes)
+    )
+    conn.commit()
+    conn.close()
+
+def delete_transaction(tx_id, user_id):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM transactions WHERE id = ? AND user_id = ?', (tx_id, user_id))
+    conn.commit()
+    conn.close()
+
+def get_holdings_summary(user_id):
+    """Custo médio ponderado por moeda, derivado das transações."""
+    txs = get_transactions(user_id)
+    coins = {}
+    for tx in txs:
+        cid = tx['crypto_id']
+        if cid not in coins:
+            coins[cid] = {
+                'crypto_id': cid,
+                'crypto_name': tx['crypto_name'],
+                'crypto_symbol': tx['crypto_symbol'],
+                'buy_qty': 0.0,
+                'buy_cost_brl': 0.0,
+                'sell_qty': 0.0,
+            }
+        if tx['type'] == 'buy':
+            coins[cid]['buy_qty'] += tx['quantity']
+            coins[cid]['buy_cost_brl'] += tx['quantity'] * tx['price_brl']
+        else:
+            coins[cid]['sell_qty'] += tx['quantity']
+
+    result = []
+    for h in coins.values():
+        net_qty = round(h['buy_qty'] - h['sell_qty'], 10)
+        if net_qty < 1e-8:
+            continue
+        avg_cost = h['buy_cost_brl'] / h['buy_qty'] if h['buy_qty'] > 0 else 0
+        result.append({
+            'crypto_id': h['crypto_id'],
+            'crypto_name': h['crypto_name'],
+            'crypto_symbol': h['crypto_symbol'],
+            'quantity': net_qty,
+            'avg_cost_brl': round(avg_cost, 2),
+            'total_invested_brl': round(net_qty * avg_cost, 2),
+        })
+    return result
+
 def get_portfolio(user_id):
     conn = get_db_connection()
     holdings = conn.execute(

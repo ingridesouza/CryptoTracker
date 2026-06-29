@@ -95,6 +95,10 @@
             <span class="live-dot"></span>
             <span>Ao vivo</span>
           </div>
+          <div class="currency-toggle hide-mobile" id="currency-toggle">
+            <span class="cur-opt" data-cur="brl">BRL</span>
+            <span class="cur-opt" data-cur="usd">USD</span>
+          </div>
           {% if current_user.is_authenticated %}
           <a href="{{ url_for('main.alerts') }}" class="topbar-btn" title="Alertas">
             <i class="fa-solid fa-bell"></i>

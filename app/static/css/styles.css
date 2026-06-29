@@ -191,6 +191,23 @@
   font-size: 11px; color: var(--text-muted);
 }
 
+/* Toggle BRL/USD */
+.currency-toggle {
+  display: flex; align-items: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 2px; gap: 0; cursor: pointer;
+}
+.cur-opt {
+  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+  padding: 3px 8px; border-radius: var(--radius-full);
+  color: var(--text-muted);
+  transition: background var(--transition), color var(--transition);
+  user-select: none;
+}
+.cur-opt.active { background: var(--bg-hover); color: var(--text-primary); }
+
 /* ── Main content ───────────────────────────────────────── */
 .main-content {
   flex: 1; margin-left: var(--sidebar-w); min-width: 0;

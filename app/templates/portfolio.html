@@ -3,33 +3,85 @@
 
 {% block extra_css %}
 <style>
-.portfolio-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+/* ── Layout ── */
+.portfolio-grid { display: grid; grid-template-columns: 1fr 300px; gap: 20px; align-items: start; margin-bottom: 24px; }
 @media (max-width: 1000px) { .portfolio-grid { grid-template-columns: 1fr; } }
-
 .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
 @media (max-width: 800px) { .summary-cards { grid-template-columns: 1fr 1fr; } }
 
+/* ── Holdings table ── */
 .holdings-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
-.holdings-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border); }
-.holdings-title { font-size: 15px; font-weight: 700; }
+.holdings-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
 
-
-/* Allocation chart */
-.alloc-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
-.alloc-chart-wrap { position: relative; width: 180px; height: 180px; }
-.alloc-legend { width: 100%; }
-.alloc-legend-item { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; font-size: 12px; }
-.alloc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-right: 6px; }
+/* ── Alloc chart ── */
+.alloc-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 20px 0 8px; }
+.alloc-chart-wrap { position: relative; width: 160px; height: 160px; }
+.alloc-legend { width: 100%; padding: 0 4px; }
+.alloc-legend-item { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; font-size: 12px; border-bottom: 1px solid var(--border-light); }
+.alloc-legend-item:last-child { border-bottom: none; }
+.alloc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-right: 8px; }
 .alloc-name { flex: 1; color: var(--text-secondary); }
 .alloc-pct { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); }
+
+/* ── Transactions ── */
+.tx-row {
+  display: grid;
+  grid-template-columns: 90px 1fr 70px 110px 110px 36px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-light);
+  transition: background var(--transition);
+  font-size: 13px;
+}
+.tx-row:last-child { border-bottom: none; }
+.tx-row:hover { background: var(--bg-hover); }
+.tx-row-head { color: var(--text-muted); font-size: 11px; font-weight: 600; padding: 10px 20px 10px; border-bottom: 1px solid var(--border); }
+.tx-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: var(--radius-full); }
+.tx-badge.buy { background: rgba(63,185,80,0.12); color: var(--accent-green); }
+.tx-badge.sell { background: rgba(248,81,73,0.12); color: var(--accent-red); }
+.tx-del { background: none; border: none; color: var(--text-muted); font-size: 13px; cursor: pointer; padding: 4px; border-radius: var(--radius-sm); transition: color var(--transition), background var(--transition); }
+.tx-del:hover { color: var(--accent-red); background: rgba(248,81,73,0.08); }
+
+/* ── Stat card secondary value ── */
+.stat-secondary { font-size: 11px; color: var(--text-muted); margin-top: 2px; font-family: var(--font-mono); }
+
+/* ── Modal ── */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); width: 100%; max-width: 440px; overflow: hidden; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+.modal-title { font-size: 15px; font-weight: 700; }
+.modal-close { color: var(--text-muted); font-size: 16px; background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: var(--radius-sm); }
+.modal-close:hover { color: var(--text-primary); background: var(--bg-hover); }
+.modal-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid var(--border); }
+
+/* ── Type toggle (Compra/Venda) ── */
+.type-toggle { display: flex; gap: 0; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.type-btn { flex: 1; padding: 8px; font-size: 13px; font-weight: 600; text-align: center; cursor: pointer; border: none; background: none; color: var(--text-secondary); transition: all var(--transition); }
+.type-btn.active-buy  { background: rgba(63,185,80,0.15);  color: var(--accent-green); }
+.type-btn.active-sell { background: rgba(248,81,73,0.15); color: var(--accent-red); }
+
+/* ── Coin search autocomplete ── */
+.coin-search-wrap { position: relative; }
+.coin-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); z-index: 100; max-height: 220px; overflow-y: auto; display: none; }
+.coin-dropdown.open { display: block; }
+.coin-option { display: flex; align-items: center; gap: 10px; padding: 9px 14px; cursor: pointer; transition: background var(--transition); font-size: 13px; }
+.coin-option:hover { background: var(--bg-hover); }
+.coin-option img { width: 22px; height: 22px; border-radius: 50%; }
+.selected-coin { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
+.selected-coin img { width: 20px; height: 20px; border-radius: 50%; }
+
+/* ── Price hint ── */
+.price-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; font-family: var(--font-mono); }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="page-header">
   <h1 class="page-title">Portfolio</h1>
-  <button class="btn btn-primary" id="add-holding-btn">
-    <i class="fa-solid fa-plus"></i> Adicionar
+  <button class="btn btn-primary" id="add-tx-btn">
+    <i class="fa-solid fa-plus"></i> Nova Transação
   </button>
 </div>
 
@@ -38,98 +90,143 @@
   <div class="stat-card">
     <div class="stat-label">Valor Total</div>
     <div class="stat-value" id="p-total-value">—</div>
-    <div class="stat-sub" id="p-total-cost">Investido: —</div>
+    <div class="stat-secondary" id="p-total-value-2">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Investido</div>
+    <div class="stat-value" id="p-invested">—</div>
+    <div class="stat-secondary" id="p-rate">—</div>
   </div>
   <div class="stat-card">
     <div class="stat-label">Lucro / Perda</div>
-    <div class="stat-value" id="p-total-pnl">—</div>
-    <div class="stat-sub" id="p-total-pnl-pct">—</div>
+    <div class="stat-value" id="p-pnl">—</div>
+    <div class="stat-secondary" id="p-pnl-pct">—</div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">Melhor Ativo</div>
-    <div class="stat-value" id="p-best">—</div>
-    <div class="stat-sub" id="p-best-sub">—</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Qtd. de Ativos</div>
+    <div class="stat-label">Ativos</div>
     <div class="stat-value" id="p-count">0</div>
-    <div class="stat-sub">posições abertas</div>
+    <div class="stat-secondary">posições abertas</div>
   </div>
 </div>
 
 <div class="portfolio-grid">
-  <!-- Holdings table -->
+  <!-- Holdings -->
   <div class="holdings-card">
     <div class="holdings-header">
-      <span class="card-title" style="margin-bottom:0"><i class="fa-solid fa-briefcase" style="color:var(--accent-blue)"></i>Posições</span>
+      <span class="card-title" style="margin-bottom:0">
+        <i class="fa-solid fa-briefcase" style="color:var(--accent-blue)"></i>Posições
+      </span>
     </div>
-    <div class="table-wrap">
-      <table class="data-table">
+    <div class="table-wrap" style="overflow-x:auto">
+      <table class="data-table" style="min-width:580px">
         <thead>
           <tr>
             <th>Moeda</th>
             <th>Quantidade</th>
-            <th>Preço Compra</th>
+            <th>Custo Médio</th>
             <th>Preço Atual</th>
-            <th>Custo</th>
-            <th>Valor</th>
+            <th>Investido</th>
+            <th>Valor Atual</th>
             <th>P&L</th>
             <th>P&L %</th>
-            <th></th>
           </tr>
         </thead>
         <tbody id="holdings-tbody">
-          <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)"><i class="fa-solid fa-spinner fa-spin"></i> Carregando...</td></tr>
+          <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">
+            <i class="fa-solid fa-spinner fa-spin"></i> Carregando…
+          </td></tr>
         </tbody>
       </table>
     </div>
   </div>
 
-  <!-- Allocation chart -->
+  <!-- Allocation -->
   <div class="card">
     <div class="card-title"><i class="fa-solid fa-chart-pie"></i>Alocação</div>
     <div class="alloc-wrap">
-      <div class="alloc-chart-wrap">
-        <canvas id="alloc-chart"></canvas>
+      <div class="alloc-chart-wrap"><canvas id="alloc-chart"></canvas></div>
+      <div class="alloc-legend" id="alloc-legend">
+        <div style="text-align:center;color:var(--text-muted);font-size:12px;padding:20px 0">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+        </div>
       </div>
-      <div class="alloc-legend" id="alloc-legend"></div>
     </div>
   </div>
 </div>
 
-<!-- Add holding modal -->
-<div class="modal-backdrop" id="add-modal" style="display:none">
+<!-- Transaction history -->
+<div class="card" style="padding:0;overflow:hidden;margin-bottom:24px">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)">
+    <span class="card-title" style="margin-bottom:0">
+      <i class="fa-solid fa-clock-rotate-left" style="color:var(--accent-blue)"></i>Histórico de Transações
+    </span>
+    <span id="tx-count" style="font-size:12px;color:var(--text-muted)">—</span>
+  </div>
+  <div class="tx-row tx-row-head" style="display:grid;grid-template-columns:90px 1fr 70px 110px 110px 36px;gap:12px;padding:10px 20px;border-bottom:1px solid var(--border);color:var(--text-muted);font-size:11px;font-weight:600">
+    <span>Data</span>
+    <span>Moeda</span>
+    <span>Tipo</span>
+    <span>Quantidade</span>
+    <span>Preço Unit.</span>
+    <span></span>
+  </div>
+  <div id="tx-list">
+    <div style="text-align:center;padding:32px;color:var(--text-muted);font-size:13px">
+      <i class="fa-solid fa-spinner fa-spin"></i> Carregando…
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nova Transação -->
+<div class="modal-backdrop" id="tx-modal" style="display:none">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title"><i class="fa-solid fa-plus-circle" style="color:var(--accent-blue);margin-right:6px"></i>Adicionar ao Portfolio</span>
-      <button class="modal-close btn-icon" id="close-modal"><i class="fa-solid fa-xmark"></i></button>
+      <span class="modal-title">Nova Transação</span>
+      <button class="modal-close" id="close-tx-modal"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
+      <!-- Tipo -->
       <div class="form-group">
-        <label class="form-label">ID da Moeda (CoinGecko)</label>
-        <input type="text" id="h-crypto-id" class="form-input" placeholder="ex: bitcoin, ethereum, solana">
-        <div class="form-hint">Use o ID exato da CoinGecko (em minúsculas)</div>
+        <label class="form-label">Tipo</label>
+        <div class="type-toggle">
+          <button class="type-btn active-buy" data-type="buy" id="type-buy">▲ Compra</button>
+          <button class="type-btn" data-type="sell" id="type-sell">▼ Venda</button>
+        </div>
       </div>
+      <!-- Moeda -->
       <div class="form-group">
-        <label class="form-label">Nome da Moeda</label>
-        <input type="text" id="h-crypto-name" class="form-input" placeholder="ex: Bitcoin">
+        <label class="form-label">Moeda</label>
+        <div class="coin-search-wrap" id="coin-search-wrap">
+          <input type="text" id="coin-search-input" class="form-input" placeholder="Buscar — Bitcoin, BTC, ETH…" autocomplete="off">
+          <div class="coin-dropdown" id="coin-dropdown"></div>
+        </div>
+        <div id="selected-coin-display" style="display:none;margin-top:8px"></div>
       </div>
+      <!-- Quantidade -->
       <div class="form-group">
         <label class="form-label">Quantidade</label>
-        <input type="number" id="h-amount" class="form-input" placeholder="0.5" min="0" step="any">
+        <input type="number" id="tx-qty" class="form-input" placeholder="0.5" min="0" step="any">
       </div>
+      <!-- Preço em BRL -->
       <div class="form-group">
-        <label class="form-label">Preço de Compra (USD)</label>
-        <input type="number" id="h-purchase-price" class="form-input" placeholder="45000" min="0" step="any">
+        <label class="form-label">Preço unitário (R$)</label>
+        <input type="number" id="tx-price-brl" class="form-input" placeholder="450.000,00" min="0" step="any">
+        <div class="price-hint" id="price-hint-usd">≈ USD —</div>
       </div>
+      <!-- Data -->
       <div class="form-group">
-        <label class="form-label">Data de Compra (opcional)</label>
-        <input type="date" id="h-date" class="form-input">
+        <label class="form-label">Data</label>
+        <input type="date" id="tx-date" class="form-input">
+      </div>
+      <!-- Notes -->
+      <div class="form-group">
+        <label class="form-label">Observação <span style="color:var(--text-muted)">(opcional)</span></label>
+        <input type="text" id="tx-notes" class="form-input" placeholder="ex: compra na Binance">
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" id="cancel-modal">Cancelar</button>
-      <button class="btn btn-primary" id="save-holding"><i class="fa-solid fa-check"></i> Salvar</button>
+      <button class="btn btn-ghost" id="cancel-tx-modal">Cancelar</button>
+      <button class="btn btn-primary" id="save-tx"><i class="fa-solid fa-check"></i> Salvar</button>
     </div>
   </div>
 </div>
