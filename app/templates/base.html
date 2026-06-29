@@ -82,11 +82,13 @@
           <button class="mobile-menu-btn" id="mobile-menu-btn">
             <i class="fa-solid fa-bars"></i>
           </button>
+          {% if request.endpoint != 'main.search' %}
           <div class="search-bar">
             <i class="fa-solid fa-magnifying-glass search-icon"></i>
             <input type="text" id="global-search" placeholder="Buscar criptomoeda..." autocomplete="off">
             <div class="search-dropdown" id="search-dropdown"></div>
           </div>
+          {% endif %}
         </div>
         <div class="topbar-right">
           <div class="topbar-live hide-mobile">
