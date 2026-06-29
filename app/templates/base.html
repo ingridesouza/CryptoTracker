@@ -45,8 +45,8 @@
           <span class="nav-label">Dashboard</span>
         </a>
         <a href="{{ url_for('main.search') }}" class="nav-item {% if request.endpoint == 'main.search' %}active{% endif %}">
-          <i class="fa-solid fa-magnifying-glass nav-icon"></i>
-          <span class="nav-label">Buscar</span>
+          <i class="fa-solid fa-compass nav-icon"></i>
+          <span class="nav-label">Explorar</span>
         </a>
         {% if current_user.is_authenticated %}
         <div class="sidebar-section-label"></div>
@@ -82,6 +82,13 @@
           <button class="mobile-menu-btn" id="mobile-menu-btn">
             <i class="fa-solid fa-bars"></i>
           </button>
+        </div>
+        <div class="topbar-center">
+          <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="global-search" placeholder="Buscar moeda — BTC, Ethereum…" autocomplete="off">
+            <div class="search-dropdown" id="search-dropdown"></div>
+          </div>
         </div>
         <div class="topbar-right">
           <div class="topbar-live hide-mobile">

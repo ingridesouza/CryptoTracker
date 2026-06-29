@@ -1,20 +1,8 @@
 {% extends 'base.html' %}
-{% block title %}Buscar — CryptoTracker{% endblock %}
+{% block title %}Explorar — CryptoTracker{% endblock %}
 
 {% block extra_css %}
 <style>
-.search-page-form { display: flex; gap: 10px; margin-bottom: 24px; }
-.search-page-input {
-  flex: 1; padding: 11px 16px; font-size: 14px;
-  background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius-md); color: var(--text-primary);
-  font-family: inherit;
-}
-.search-page-input:focus {
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(88,166,255,0.1);
-  outline: none;
-}
 .mover-tab.active { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border); }
 .mover-row {
   display: flex; align-items: center; gap: 12px;
@@ -41,63 +29,50 @@
   transition: border-color var(--transition), color var(--transition), background var(--transition);
 }
 .quick-chip:hover { border-color: var(--accent-blue); color: var(--accent-blue); background: rgba(88,166,255,0.08); }
-@media (max-width: 700px) { #search-home-grid { grid-template-columns: 1fr !important; } }
+@media (max-width: 700px) { #explore-grid { grid-template-columns: 1fr !important; } }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="page-header">
-  <h1 class="page-title">Buscar</h1>
+  <h1 class="page-title">Explorar</h1>
 </div>
 
-<form class="search-page-form" id="search-form">
-  <input type="text" id="search-input" class="search-page-input"
-         placeholder="Nome, símbolo ou ID — ex: Bitcoin, BTC, ETH, Solana…"
-         autocomplete="off" autofocus>
-  <button type="submit" class="btn btn-primary" style="padding:11px 20px">
-    <i class="fa-solid fa-magnifying-glass"></i> Buscar
-  </button>
-</form>
+<!-- Quick chips -->
+<div style="margin-bottom:28px">
+  <div class="section-label" style="margin-bottom:10px">Populares</div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px" id="quick-chips-search"></div>
+</div>
 
-<div id="search-result-area"></div>
-
-<div id="search-home">
-  <!-- Quick chips -->
-  <div style="margin-bottom:28px">
-    <div class="section-label" style="margin-bottom:10px">Populares</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px" id="quick-chips-search"></div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" id="search-home-grid">
-    <!-- Trending -->
-    <div class="card" style="padding:0;overflow:hidden">
-      <div style="padding:16px 18px;border-bottom:1px solid var(--border)">
-        <span class="card-title" style="margin-bottom:0">
-          <i class="fa-solid fa-fire" style="color:var(--accent-yellow)"></i>Em Alta
-        </span>
-      </div>
-      <div id="trending-home">
-        <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">
-          <i class="fa-solid fa-spinner fa-spin"></i>
-        </div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" id="explore-grid">
+  <!-- Trending -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:16px 18px;border-bottom:1px solid var(--border)">
+      <span class="card-title" style="margin-bottom:0">
+        <i class="fa-solid fa-fire" style="color:var(--accent-yellow)"></i>Em Alta
+      </span>
+    </div>
+    <div id="trending-home">
+      <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">
+        <i class="fa-solid fa-spinner fa-spin"></i>
       </div>
     </div>
+  </div>
 
-    <!-- Top movers -->
-    <div class="card" style="padding:0;overflow:hidden">
-      <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center">
-        <span class="card-title" style="margin-bottom:0;flex:1">
-          <i class="fa-solid fa-chart-line"></i>Movers 24h
-        </span>
-        <div style="display:flex;gap:4px">
-          <button class="btn btn-ghost btn-sm mover-tab active" data-tab="gainers">▲ Alta</button>
-          <button class="btn btn-ghost btn-sm mover-tab" data-tab="losers">▼ Baixa</button>
-        </div>
+  <!-- Top movers -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:16px 18px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:center">
+      <span class="card-title" style="margin-bottom:0;flex:1">
+        <i class="fa-solid fa-chart-line"></i>Movers 24h
+      </span>
+      <div style="display:flex;gap:4px">
+        <button class="btn btn-ghost btn-sm mover-tab active" data-tab="gainers">▲ Alta</button>
+        <button class="btn btn-ghost btn-sm mover-tab" data-tab="losers">▼ Baixa</button>
       </div>
-      <div id="movers-home">
-        <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">
-          <i class="fa-solid fa-spinner fa-spin"></i>
-        </div>
+    </div>
+    <div id="movers-home">
+      <div style="padding:20px;text-align:center;color:var(--text-muted);font-size:12px">
+        <i class="fa-solid fa-spinner fa-spin"></i>
       </div>
     </div>
   </div>
